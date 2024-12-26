@@ -35,9 +35,42 @@ const RideRequest = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Ride Request Submitted:", formData);
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("Please log in to create a ride");
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/rides`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      let errorMessage = "Failed to create ride";
+      if (!response.ok) {
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = `${errorMessage}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      console.log("Ride created successfully:");
+    } catch (error) {
+      console.error("Error creating ride:", error);
+    }
   };
 
   return (
@@ -73,7 +106,9 @@ const RideRequest = () => {
                 label="Pickup Location"
                 placeholder="Enter pickup location"
                 value={formData.pickup}
-                onChange={(value) => setFormData((prev) => ({ ...prev, pickup: value }))}
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, pickup: value }))
+                }
               />
             </motion.div>
 
@@ -83,7 +118,9 @@ const RideRequest = () => {
                 label="Destination"
                 placeholder="Enter destination"
                 value={formData.destination}
-                onChange={(value) => setFormData((prev) => ({ ...prev, destination: value }))}
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, destination: value }))
+                }
               />
             </motion.div>
 

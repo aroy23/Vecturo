@@ -1,51 +1,120 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FiMapPin } from 'react-icons/fi';
+import React, { useState, useEffect, useRef } from "react";
+import { FiMapPin } from "react-icons/fi";
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+const loadGoogleMapsScript = () => {
+  return new Promise((resolve, reject) => {
+    if (window.google) {
+      resolve(window.google);
+      return;
+    }
+
+    if (document.querySelector("#google-maps-script")) {
+      // Script is already loading
+      const checkGoogle = setInterval(() => {
+        if (window.google) {
+          clearInterval(checkGoogle);
+          resolve(window.google);
+        }
+      }, 100);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "google-maps-script";
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+
+    script.onload = () => {
+      resolve(window.google);
+    };
+
+    script.onerror = (error) => {
+      reject(new Error("Failed to load Google Maps API"));
+    };
+
+    document.head.appendChild(script);
+  });
+};
 
 const LocationAutocomplete = ({ value, onChange, placeholder, label, id }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [error, setError] = useState(null);
   const autocompleteRef = useRef(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
-    // Load Google Maps JavaScript API
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    script.onload = initAutocomplete;
-    document.head.appendChild(script);
+    let isMounted = true;
+
+    const initializeGoogleMaps = async () => {
+      try {
+        await loadGoogleMapsScript();
+        if (
+          isMounted &&
+          window.google &&
+          window.google.maps &&
+          window.google.maps.places
+        ) {
+          autocompleteRef.current =
+            new window.google.maps.places.AutocompleteService();
+        }
+      } catch (error) {
+        console.error("Error loading Google Maps:", error);
+        setError(
+          "Unable to load location suggestions. Please try again later."
+        );
+      }
+    };
+
+    initializeGoogleMaps();
 
     return () => {
-      document.head.removeChild(script);
+      isMounted = false;
     };
   }, []);
 
-  const initAutocomplete = () => {
-    autocompleteRef.current = new window.google.maps.places.AutocompleteService();
-  };
+  const handleInput = async (e) => {
+    const inputValue = e.target.value;
+    onChange(inputValue);
 
-  const handleInput = (e) => {
-    const value = e.target.value;
-    onChange(value);
+    if (!autocompleteRef.current) {
+      console.warn("Google Maps API not loaded yet");
+      return;
+    }
 
-    if (value.length > 0 && autocompleteRef.current) {
-      autocompleteRef.current.getPlacePredictions(
-        {
-          input: value,
-          componentRestrictions: { country: 'us' }, // Restrict to US
-          types: ['establishment', 'geocode'] // Include both places and addresses
-        },
-        handleAutocompleteResults
-      );
+    if (inputValue.length > 0) {
+      try {
+        const request = {
+          input: inputValue,
+          componentRestrictions: { country: "us" },
+          types: ["establishment", "geocode"],
+        };
+
+        autocompleteRef.current.getPlacePredictions(
+          request,
+          (predictions, status) => {
+            if (
+              status === window.google.maps.places.PlacesServiceStatus.OK &&
+              predictions
+            ) {
+              setSuggestions(predictions);
+              setShowSuggestions(true);
+            } else {
+              setSuggestions([]);
+              setShowSuggestions(false);
+            }
+          }
+        );
+      } catch (error) {
+        console.error("Error getting place predictions:", error);
+        setError("Error getting location suggestions");
+      }
     } else {
       setSuggestions([]);
-    }
-  };
-
-  const handleAutocompleteResults = (predictions, status) => {
-    if (status === window.google.maps.places.PlacesServiceStatus.OK) {
-      setSuggestions(predictions);
-      setShowSuggestions(true);
+      setShowSuggestions(false);
     }
   };
 
@@ -55,7 +124,6 @@ const LocationAutocomplete = ({ value, onChange, placeholder, label, id }) => {
     setShowSuggestions(false);
   };
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (inputRef.current && !inputRef.current.contains(event.target)) {
@@ -63,9 +131,9 @@ const LocationAutocomplete = ({ value, onChange, placeholder, label, id }) => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -85,6 +153,7 @@ const LocationAutocomplete = ({ value, onChange, placeholder, label, id }) => {
           className="input pl-10 w-full"
           required
         />
+        {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
         {showSuggestions && suggestions.length > 0 && (
           <ul className="absolute z-10 w-full bg-white mt-1 rounded-md shadow-lg max-h-60 overflow-auto">
             {suggestions.map((suggestion) => (

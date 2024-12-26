@@ -10,8 +10,7 @@ pnpm-debug.log*
 node_modules/
 
 # Model and Image files
-client/public/models/
-client/public/images/
+client/public/
 
 # Vite build output
 dist/

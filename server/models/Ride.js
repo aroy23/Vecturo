@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
 
 const rideSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    required: true
+  },
   pickup: {
     type: String,
     required: true,
@@ -28,7 +32,8 @@ const rideSchema = new mongoose.Schema({
   isMatched: {
     type: Boolean,
     default: false,
-  },
+    required: true,
+  }
 });
 
 module.exports = mongoose.model("Ride", rideSchema);

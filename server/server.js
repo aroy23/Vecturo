@@ -4,6 +4,8 @@ const cors = require("cors");
 require("dotenv").config();
 
 const userRoutes = require("./routes/users");
+const rideRoutes = require("./routes/rides");
+const { AodOutlined } = require("@mui/icons-material");
 
 const app = express();
 
@@ -22,6 +24,7 @@ mongoose
 
 // Routes
 app.use("/api/users", userRoutes);
+app.use("/api/rides", rideRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
