@@ -23,12 +23,43 @@ const staggerContainer = {
 const RideRequest = () => {
   const [formData, setFormData] = useState({
     pickup: "",
+    pickupPlaceID: "",
+    pickupZipCode: "",
+    pickupLat: "",
+    pickupLong: "",
     destination: "",
+    destinationPlaceID: "",
     date: "",
     timeRangeStart: "",
     timeRangeEnd: "",
     passengers: 1,
   });
+
+  const handleLocationSelect = (location, type) => {
+    setFormData((prev) => ({
+      ...prev,
+      [type]: location.description,
+      [`${type}PlaceID`]: location.place_id,
+      ...(type === 'pickup' && {
+        pickupZipCode: location.zipCode,
+        pickupLat: location.lat.toString(),
+        pickupLong: location.lng.toString(),
+      })
+    }));
+  };
+
+  const handleLocationChange = (value, type) => {
+    setFormData((prev) => ({
+      ...prev,
+      [type]: value,
+      [`${type}PlaceID`]: "", // Clear placeID when input changes
+      ...(type === 'pickup' && {
+        pickupZipCode: '',
+        pickupLat: '',
+        pickupLong: '',
+      })
+    }));
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -102,24 +133,20 @@ const RideRequest = () => {
           >
             <motion.div variants={fadeIn} className="form-group">
               <LocationAutocomplete
-                id="pickup"
                 label="Pickup Location"
-                placeholder="Enter pickup location"
                 value={formData.pickup}
-                onChange={(value) =>
-                  setFormData((prev) => ({ ...prev, pickup: value }))
-                }
+                onChange={(value) => handleLocationChange(value, "pickup")}
+                onSelect={(location) => handleLocationSelect(location, "pickup")}
               />
             </motion.div>
 
             <motion.div variants={fadeIn} className="form-group">
               <LocationAutocomplete
-                id="destination"
                 label="Destination"
-                placeholder="Enter destination"
                 value={formData.destination}
-                onChange={(value) =>
-                  setFormData((prev) => ({ ...prev, destination: value }))
+                onChange={(value) => handleLocationChange(value, "destination")}
+                onSelect={(location) =>
+                  handleLocationSelect(location, "destination")
                 }
               />
             </motion.div>

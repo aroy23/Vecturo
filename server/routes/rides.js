@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
+const { createRide, findMatchingRides } = require("../controllers/rideController");
 const { authenticateUser } = require("../middleware/auth");
-const { createRide } = require("../controllers/rideController");
 
 // create ride
-router.post("/", authenticateUser, createRide);
+router.post("/create", authenticateUser, createRide);
+router.get("/match/:rideId", authenticateUser, findMatchingRides);
 
 module.exports = router;

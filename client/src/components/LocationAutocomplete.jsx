@@ -39,11 +39,12 @@ const loadGoogleMapsScript = () => {
   });
 };
 
-const LocationAutocomplete = ({ value, onChange, placeholder, label, id }) => {
+const LocationAutocomplete = ({ value, onChange, onSelect, label }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [error, setError] = useState(null);
   const autocompleteRef = useRef(null);
+  const placesServiceRef = useRef(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -60,6 +61,11 @@ const LocationAutocomplete = ({ value, onChange, placeholder, label, id }) => {
         ) {
           autocompleteRef.current =
             new window.google.maps.places.AutocompleteService();
+          // Initialize PlacesService with a dummy div (required by Google Maps API)
+          const mapDiv = document.createElement("div");
+          const map = new window.google.maps.Map(mapDiv);
+          placesServiceRef.current =
+            new window.google.maps.places.PlacesService(map);
         }
       } catch (error) {
         console.error("Error loading Google Maps:", error);
@@ -76,6 +82,35 @@ const LocationAutocomplete = ({ value, onChange, placeholder, label, id }) => {
     };
   }, []);
 
+  const getPlaceDetails = async (placeId) => {
+    return new Promise((resolve, reject) => {
+      const request = {
+        placeId: placeId,
+        fields: ["formatted_address", "geometry", "address_components"],
+      };
+
+      placesServiceRef.current.getDetails(request, (place, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK) {
+          const zipCode =
+            place.address_components.find((component) =>
+              component.types.includes("postal_code")
+            )?.short_name || "";
+
+          const locationDetails = {
+            description: place.formatted_address,
+            place_id: placeId,
+            zipCode,
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          };
+          resolve(locationDetails);
+        } else {
+          reject(new Error("Failed to get place details"));
+        }
+      });
+    });
+  };
+
   const handleInput = async (e) => {
     const inputValue = e.target.value;
     onChange(inputValue);
@@ -90,27 +125,26 @@ const LocationAutocomplete = ({ value, onChange, placeholder, label, id }) => {
         const request = {
           input: inputValue,
           componentRestrictions: { country: "us" },
-          types: ["establishment", "geocode"],
         };
 
-        autocompleteRef.current.getPlacePredictions(
-          request,
-          (predictions, status) => {
-            if (
-              status === window.google.maps.places.PlacesServiceStatus.OK &&
-              predictions
-            ) {
-              setSuggestions(predictions);
-              setShowSuggestions(true);
-            } else {
-              setSuggestions([]);
-              setShowSuggestions(false);
+        const { predictions } = await new Promise((resolve, reject) => {
+          autocompleteRef.current.getPlacePredictions(
+            request,
+            (predictions, status) => {
+              if (status === window.google.maps.places.PlacesServiceStatus.OK) {
+                resolve({ predictions });
+              } else {
+                reject(new Error("Failed to get predictions"));
+              }
             }
-          }
-        );
+          );
+        });
+
+        setSuggestions(predictions || []);
+        setShowSuggestions(true);
       } catch (error) {
-        console.error("Error getting place predictions:", error);
-        setError("Error getting location suggestions");
+        console.error("Error getting predictions:", error);
+        setSuggestions([]);
       }
     } else {
       setSuggestions([]);
@@ -118,10 +152,16 @@ const LocationAutocomplete = ({ value, onChange, placeholder, label, id }) => {
     }
   };
 
-  const handleSuggestionClick = (suggestion) => {
-    onChange(suggestion.description);
-    setSuggestions([]);
-    setShowSuggestions(false);
+  const handleSuggestionClick = async (suggestion) => {
+    try {
+      const locationDetails = await getPlaceDetails(suggestion.place_id);
+      onSelect(locationDetails);
+      setShowSuggestions(false);
+      setSuggestions([]);
+    } catch (error) {
+      console.error("Error getting place details:", error);
+      setError("Error getting location details");
+    }
   };
 
   useEffect(() => {
@@ -139,17 +179,19 @@ const LocationAutocomplete = ({ value, onChange, placeholder, label, id }) => {
 
   return (
     <div className="form-group">
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700">
+      <label
+        htmlFor="location"
+        className="block text-sm font-medium text-gray-700"
+      >
         {label}
       </label>
       <div className="relative mt-1" ref={inputRef}>
         <FiMapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         <input
           type="text"
-          id={id}
+          id="location"
           value={value}
           onChange={handleInput}
-          placeholder={placeholder}
           className="input pl-10 w-full"
           required
         />
