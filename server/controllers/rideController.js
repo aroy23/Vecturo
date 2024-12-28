@@ -22,7 +22,7 @@ const createRide = async (req, res) => {
       pickup,
       date,
       timeRangeStart,
-      timeRangeEnd
+      timeRangeEnd,
     });
 
     const newRide = new Ride({
@@ -31,8 +31,8 @@ const createRide = async (req, res) => {
       pickupPlaceID,
       pickupZipCode,
       pickupLocation: {
-        type: 'Point',
-        coordinates: [parseFloat(pickupLong), parseFloat(pickupLat)] // MongoDB expects [longitude, latitude]
+        type: "Point",
+        coordinates: [parseFloat(pickupLong), parseFloat(pickupLat)], // MongoDB expects [longitude, latitude]
       },
       destination,
       destinationPlaceID,
@@ -47,7 +47,7 @@ const createRide = async (req, res) => {
       userId: newRide.userId,
       pickupLocation: newRide.pickupLocation,
       date: newRide.date,
-      timeRange: `${newRide.timeRangeStart}-${newRide.timeRangeEnd}`
+      timeRange: `${newRide.timeRangeStart}-${newRide.timeRangeEnd}`,
     });
 
     const savedRide = await newRide.save();
@@ -72,7 +72,7 @@ const findMatches = async (req, res) => {
       rideId: ride._id,
       pickupLocation: ride.pickupLocation,
       date: ride.date,
-      timeRange: `${ride.timeRangeStart}-${ride.timeRangeEnd}`
+      timeRange: `${ride.timeRangeStart}-${ride.timeRangeEnd}`,
     });
 
     // Convert time strings to minutes for comparison
@@ -84,11 +84,13 @@ const findMatches = async (req, res) => {
       _id: { $ne: ride._id },
       userId: { $ne: ride.userId },
       isMatched: false,
-      date: ride.date
+      date: ride.date,
     });
 
-    console.log("Found potential rides before location filter:", allRides.length);
-    console.log("Sample of potential rides:", allRides.slice(0, 2));
+    console.log(
+      "Found potential rides before location filter:",
+      allRides.length
+    );
 
     // Find rides within 0.5 miles (approximately 804.672 meters)
     const matches = await Ride.find({
@@ -99,28 +101,27 @@ const findMatches = async (req, res) => {
       pickupLocation: {
         $near: {
           $geometry: ride.pickupLocation,
-          $maxDistance: 804.672 // 0.5 miles in meters
-        }
-      }
+          $maxDistance: 804.672, // 0.5 miles in meters
+        },
+      },
     });
 
     console.log("Matches after location filter:", matches.length);
 
     // Filter matches by time window overlap
-    const timeFilteredMatches = matches.filter(match => {
+    const timeFilteredMatches = matches.filter((match) => {
       const matchStart = convertTimeToMinutes(match.timeRangeStart);
       const matchEnd = convertTimeToMinutes(match.timeRangeEnd);
 
-      const hasOverlap = (
+      const hasOverlap =
         (matchStart >= rideStart && matchStart <= rideEnd) ||
         (matchEnd >= rideStart && matchEnd <= rideEnd) ||
-        (matchStart <= rideStart && matchEnd >= rideEnd)
-      );
+        (matchStart <= rideStart && matchEnd >= rideEnd);
 
       console.log("Time window comparison:", {
         match: `${match.timeRangeStart}-${match.timeRangeEnd}`,
         ride: `${ride.timeRangeStart}-${ride.timeRangeEnd}`,
-        hasOverlap
+        hasOverlap,
       });
 
       return hasOverlap;
@@ -131,13 +132,15 @@ const findMatches = async (req, res) => {
     res.json(timeFilteredMatches);
   } catch (error) {
     console.error("Error finding matches:", error);
-    res.status(500).json({ message: "Error finding matches", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error finding matches", error: error.message });
   }
 };
 
 // Helper function to convert time string to minutes for comparison
 function convertTimeToMinutes(time) {
-  const [hours, minutes] = time.split(':').map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
 }
 
