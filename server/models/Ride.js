@@ -17,13 +17,16 @@ const rideSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  pickupLat: {
-    type: String,
-    required: true,
-  },
-  pickupLong: {
-    type: String,
-    required: true,
+  pickupLocation: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: true
+    },
+    coordinates: {
+      type: [Number],
+      required: true
+    }
   },
   destination: {
     type: String,
@@ -55,5 +58,8 @@ const rideSchema = new mongoose.Schema({
     required: true,
   },
 });
+
+// Create a 2dsphere index for geospatial queries
+rideSchema.index({ pickupLocation: "2dsphere" });
 
 module.exports = mongoose.model("Ride", rideSchema);

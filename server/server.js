@@ -19,7 +19,18 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("Connected to MongoDB"))
+  .then(async () => {
+    console.log("Connected to MongoDB");
+    
+    // Ensure geospatial index exists
+    try {
+      const Ride = require("./models/Ride");
+      await Ride.collection.createIndex({ "pickupLocation": "2dsphere" });
+      console.log("Geospatial index created/verified on pickupLocation");
+    } catch (error) {
+      console.error("Error creating geospatial index:", error);
+    }
+  })
   .catch((err) => console.error("MongoDB connection error:", err));
 
 // Routes

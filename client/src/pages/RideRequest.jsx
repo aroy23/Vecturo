@@ -34,6 +34,9 @@ const RideRequest = () => {
     timeRangeEnd: "",
     passengers: 1,
   });
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleLocationSelect = (location, type) => {
     setFormData((prev) => ({
@@ -66,14 +69,52 @@ const RideRequest = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const findMatches = async (rideId) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) throw new Error("Please log in to find matches");
+
+      console.log("Finding matches for ride:", rideId);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/rides/${rideId}/matches`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to find matches");
+      }
+
+      const matchData = await response.json();
+      console.log("Found matches:", matchData);
+      setMatches(matchData);
+      
+      if (matchData.length === 0) {
+        setError("No matches found nearby. We'll keep looking!");
+      }
+    } catch (error) {
+      console.error("Error finding matches:", error);
+      setError(error.message);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setMatches([]); // Clear previous matches
+    
     try {
       const token = localStorage.getItem("authToken");
       if (!token) {
         throw new Error("Please log in to create a ride");
       }
 
+      console.log("Creating ride with data:", formData);
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/rides`,
         {
@@ -98,9 +139,15 @@ const RideRequest = () => {
       }
 
       const data = await response.json();
-      console.log("Ride created successfully:");
+      console.log("Ride created successfully:", data);
+      
+      // Find matches for the newly created ride
+      await findMatches(data._id);
     } catch (error) {
       console.error("Error creating ride:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -125,6 +172,15 @@ const RideRequest = () => {
           >
             Fill out the details below to find your perfect rideshare match.
           </motion.p>
+
+          {error && (
+            <motion.div
+              variants={fadeIn}
+              className="mb-6 p-4 text-red-700 bg-red-100 rounded-lg"
+            >
+              {error}
+            </motion.div>
+          )}
 
           <motion.form
             variants={staggerContainer}
@@ -235,11 +291,72 @@ const RideRequest = () => {
             </motion.div>
 
             <motion.div variants={fadeIn} className="text-center">
-              <Button type="submit" className="w-full">
-                Find Rideshare
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Finding Matches..." : "Find Rideshare"}
               </Button>
             </motion.div>
           </motion.form>
+
+          {loading && (
+            <motion.div
+              variants={fadeIn}
+              className="mt-8 text-center text-gray-600"
+            >
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              Finding potential matches...
+            </motion.div>
+          )}
+
+          {error && (
+            <motion.div
+              variants={fadeIn}
+              className="mt-8 p-4 bg-red-50 border border-red-100 rounded-lg max-w-3xl mx-auto"
+            >
+              <p className="text-red-700 text-center">{error}</p>
+            </motion.div>
+          )}
+
+          {!loading && matches.length > 0 && (
+            <motion.div
+              variants={fadeIn}
+              className="mt-8 max-w-3xl mx-auto"
+            >
+              <h2 className="text-2xl font-bold mb-4 text-center">Potential Matches</h2>
+              <div className="space-y-4">
+                {matches.map((match) => (
+                  <div
+                    key={match._id}
+                    className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-lg">Pickup: {match.pickup}</h3>
+                        <p className="text-gray-600">Destination: {match.destination}</p>
+                        <p className="text-gray-600">
+                          Time: {match.timeRangeStart} - {match.timeRangeEnd}
+                        </p>
+                        <p className="text-gray-600">
+                          Passengers: {match.passengers}
+                        </p>
+                        <p className="text-gray-600">
+                          Date: {match.date}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          // TODO: Implement match confirmation
+                          console.log("Match selected:", match._id);
+                        }}
+                        className="bg-green-500 hover:bg-green-600"
+                      >
+                        Select Match
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </motion.div>
       </section>
     </MainLayout>
