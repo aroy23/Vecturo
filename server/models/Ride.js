@@ -17,18 +17,6 @@ const rideSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  pickupLocation: {
-    type: {
-      type: String,
-      enum: ['Point'],
-      required: true,
-      default: 'Point'
-    },
-    coordinates: {
-      type: [Number],
-      required: true
-    }
-  },
   pickupLat: {
     type: String,
     required: true,
@@ -63,29 +51,9 @@ const rideSchema = new mongoose.Schema({
   },
   isMatched: {
     type: Boolean,
-    default: false
+    default: false,
+    required: true,
   },
-  matchedRideId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Ride',
-    default: null
-  }
 });
 
-// Create geospatial index for pickup location
-rideSchema.index({ pickupLocation: '2dsphere' });
-
-// Pre-save middleware to set pickupLocation from lat/long
-rideSchema.pre('save', function(next) {
-  if (this.pickupLat && this.pickupLong) {
-    this.pickupLocation = {
-      type: 'Point',
-      coordinates: [parseFloat(this.pickupLong), parseFloat(this.pickupLat)]
-    };
-  }
-  next();
-});
-
-const Ride = mongoose.model("Ride", rideSchema);
-
-module.exports = Ride;
+module.exports = mongoose.model("Ride", rideSchema);

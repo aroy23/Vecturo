@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Menu, MenuItem, MenuItems, MenuButton } from "@headlessui/react";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,13 @@ import { useAuth } from "../contexts/AuthContext";
 const MainLayout = ({ children }) => {
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
+  const [profileUrl, setProfileUrl] = useState(null);
+
+  useEffect(() => {
+    if (currentUser?.photoURL) {
+      setProfileUrl(currentUser.photoURL);
+    }
+  }, [currentUser]);
 
   const handleSignOut = async () => {
     try {
@@ -21,13 +28,13 @@ const MainLayout = ({ children }) => {
     <div className="min-h-screen min-w-[100vw] bg-gradient-to-br from-gray-50 to-gray-100 overflow-x-auto">
       <div className="min-w-[1024px]">
         <header className="fixed w-full min-w-[1024px] bg-white/80 backdrop-blur-md shadow-sm z-50">
-          <div className="container-padding">
-            <div className="flex justify-between items-center h-16">
+          <div className="container-padding flex justify-between items-center py-3">
+            <div className="flex items-center space-x-4">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="text-2xl font-bold gradient-text ml-4 md:ml-0 cursor-pointer"
-                onClick={() => navigate('/home')}
+                onClick={() => navigate("/home")}
               >
                 Vecturo
               </motion.div>
@@ -45,42 +52,40 @@ const MainLayout = ({ children }) => {
                     </motion.a>
                   ))}
                 </nav>
-
-                {currentUser && (
-                  <div className="relative">
-                    <Menu>
-                      <MenuButton className="flex rounded-full bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                        <img
-                          src={currentUser.photoURL.slice(0, 92)}
-                          alt="Profile"
-                          className="h-8 w-8 rounded-full object-cover"
-                        />
-                      </MenuButton>
-                      <MenuItems
-                        as={motion.div}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-                      >
-                        <MenuItem>
-                          {({ focus }) => (
-                            <button
-                              onClick={handleSignOut}
-                              className={`${
-                                focus ? "bg-gray-100" : ""
-                              } block w-full px-4 py-2 text-left text-sm text-gray-700`}
-                            >
-                              Sign Out
-                            </button>
-                          )}
-                        </MenuItem>
-                      </MenuItems>
-                    </Menu>
-                  </div>
-                )}
               </div>
             </div>
+            <Menu as="div" className="relative">
+              <MenuButton className="flex items-center space-x-2">
+                {profileUrl && (
+                  <img
+                    src={profileUrl}
+                    alt="Profile"
+                    className="h-8 w-8 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+              </MenuButton>
+              <MenuItems
+                as={motion.div}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+              >
+                <MenuItem>
+                  {({ focus }) => (
+                    <button
+                      onClick={handleSignOut}
+                      className={`${
+                        focus ? "bg-gray-100" : ""
+                      } block w-full px-4 py-2 text-left text-sm text-gray-700`}
+                    >
+                      Sign Out
+                    </button>
+                  )}
+                </MenuItem>
+              </MenuItems>
+            </Menu>
           </div>
         </header>
 
