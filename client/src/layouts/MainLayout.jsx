@@ -40,17 +40,30 @@ const MainLayout = ({ children }) => {
               </motion.div>
               <div className="hidden md:flex items-center space-x-8">
                 <nav className="flex space-x-8">
-                  {["Features"].map((item) => (
-                    <motion.a
-                      key={item}
-                      href={`#${item.toLowerCase().replace(/\s+/g, "-")}`}
-                      className="px-4 py-2 rounded-full text-gray-700 hover:text-gray-900 font-medium transition-all duration-200 hover:bg-gray-100 active:bg-gray-200"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      {item}
-                    </motion.a>
-                  ))}
+                  <motion.button
+                    onClick={() => navigate("/home")}
+                    className="px-4 py-2 rounded-full text-gray-700 hover:text-gray-900 font-medium transition-all duration-200 hover:bg-gray-100 active:bg-gray-200"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Home
+                  </motion.button>
+                  <motion.button
+                    onClick={() => navigate("/my-rides")}
+                    className="px-4 py-2 rounded-full text-gray-700 hover:text-gray-900 font-medium transition-all duration-200 hover:bg-gray-100 active:bg-gray-200"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    My Rides
+                  </motion.button>
+                  <motion.a
+                    href="#features"
+                    className="px-4 py-2 rounded-full text-gray-700 hover:text-gray-900 font-medium transition-all duration-200 hover:bg-gray-100 active:bg-gray-200"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Features
+                  </motion.a>
                 </nav>
               </div>
             </div>

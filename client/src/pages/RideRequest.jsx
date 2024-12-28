@@ -4,6 +4,7 @@ import { FiClock, FiUsers } from "react-icons/fi";
 import MainLayout from "../layouts/MainLayout";
 import Button from "../components/ui/Button";
 import LocationAutocomplete from "../components/LocationAutocomplete";
+import { useNavigate } from "react-router-dom";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -21,6 +22,7 @@ const staggerContainer = {
 };
 
 const RideRequest = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     pickup: "",
     pickupPlaceID: "",
@@ -104,45 +106,50 @@ const RideRequest = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    setError(null);
-    setMatches([]); // Clear previous matches
-    
+
     try {
       const token = localStorage.getItem("authToken");
-      if (!token) {
-        throw new Error("Please log in to create a ride");
-      }
+      if (!token) throw new Error("Please log in to create a ride");
 
-      console.log("Creating ride with data:", formData);
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/rides`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/rides`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          pickup: formData.pickup,
+          destination: formData.destination,
+          pickupLocation: {
+            type: "Point",
+            coordinates: [formData.pickupLong, formData.pickupLat],
           },
-          body: JSON.stringify(formData),
-        }
-      );
+          destinationLocation: {
+            type: "Point",
+            coordinates: [formData.destinationPlaceID, formData.destinationPlaceID],
+          },
+          date: formData.date,
+          timeRangeStart: formData.timeRangeStart,
+          timeRangeEnd: formData.timeRangeEnd,
+          passengers: parseInt(formData.passengers),
+        }),
+      });
 
-      let errorMessage = "Failed to create ride";
       if (!response.ok) {
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          errorMessage = `${errorMessage}: ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create ride");
       }
 
-      const data = await response.json();
-      console.log("Ride created successfully:", data);
+      const newRide = await response.json();
       
-      // Find matches for the newly created ride
-      await findMatches(data._id);
+      // Store the new ride ID in localStorage
+      localStorage.setItem("lastCreatedRideId", newRide._id);
+      
+      // Redirect to MyRides page
+      navigate("/my-rides");
+      
     } catch (error) {
       console.error("Error creating ride:", error);
       setError(error.message);

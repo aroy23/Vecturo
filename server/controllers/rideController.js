@@ -138,10 +138,24 @@ const findMatches = async (req, res) => {
   }
 };
 
+const getUserRides = async (req, res) => {
+  try {
+    const rides = await Ride.find({ 
+      userId: req.user.uid,
+      date: { $gte: new Date().toISOString().split('T')[0] } // Only get current and future rides
+    }).sort({ date: 1, timeRangeStart: 1 }); // Sort by date and time
+
+    res.json(rides);
+  } catch (error) {
+    console.error("Error getting user rides:", error);
+    res.status(500).json({ message: "Error getting rides", error: error.message });
+  }
+};
+
 // Helper function to convert time string to minutes for comparison
 function convertTimeToMinutes(time) {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
 }
 
-module.exports = { createRide, findMatches };
+module.exports = { createRide, findMatches, getUserRides };
