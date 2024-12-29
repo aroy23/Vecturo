@@ -82,7 +82,7 @@ const LocationAutocomplete = ({ value, onChange, onSelect, label }) => {
     };
   }, []);
 
-  const getPlaceDetails = async (placeId) => {
+  const getPlaceDetails = async (placeId, suggestion) => {
     return new Promise((resolve, reject) => {
       const request = {
         placeId: placeId,
@@ -91,24 +91,37 @@ const LocationAutocomplete = ({ value, onChange, onSelect, label }) => {
 
       placesServiceRef.current.getDetails(request, (place, status) => {
         if (status === window.google.maps.places.PlacesServiceStatus.OK) {
-          const zipCode =
-            place.address_components.find((component) =>
-              component.types.includes("postal_code")
-            )?.short_name || "";
+          console.log('Place details received:', place);
 
           const locationDetails = {
             description: place.formatted_address,
+            displayText: suggestion.structured_formatting?.main_text || suggestion.description.split(',')[0],
             place_id: placeId,
-            zipCode,
             lat: place.geometry.location.lat(),
             lng: place.geometry.location.lng(),
           };
+          
+          console.log('Location details prepared:', locationDetails);
           resolve(locationDetails);
         } else {
+          console.error('Failed to get place details, status:', status);
           reject(new Error("Failed to get place details"));
         }
       });
     });
+  };
+
+  const handleSuggestionClick = async (suggestion) => {
+    try {
+      console.log('Suggestion clicked:', suggestion);
+      const locationDetails = await getPlaceDetails(suggestion.place_id, suggestion);
+      onSelect(locationDetails);
+      setShowSuggestions(false);
+      setSuggestions([]);
+    } catch (error) {
+      console.error("Error getting place details:", error);
+      setError("Error getting location details");
+    }
   };
 
   const handleInput = async (e) => {
@@ -152,18 +165,6 @@ const LocationAutocomplete = ({ value, onChange, onSelect, label }) => {
     }
   };
 
-  const handleSuggestionClick = async (suggestion) => {
-    try {
-      const locationDetails = await getPlaceDetails(suggestion.place_id);
-      onSelect(locationDetails);
-      setShowSuggestions(false);
-      setSuggestions([]);
-    } catch (error) {
-      console.error("Error getting place details:", error);
-      setError("Error getting location details");
-    }
-  };
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (inputRef.current && !inputRef.current.contains(event.target)) {
@@ -190,7 +191,7 @@ const LocationAutocomplete = ({ value, onChange, onSelect, label }) => {
         <input
           type="text"
           id="location"
-          value={value}
+          value={value?.displayText || value || ''}
           onChange={handleInput}
           className="input pl-10 w-full"
           required
@@ -202,9 +203,14 @@ const LocationAutocomplete = ({ value, onChange, onSelect, label }) => {
               <li
                 key={suggestion.place_id}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
               >
-                {suggestion.description}
+                <div className="font-medium">
+                  {suggestion.structured_formatting?.main_text}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {suggestion.structured_formatting?.secondary_text}
+                </div>
               </li>
             ))}
           </ul>

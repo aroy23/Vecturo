@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { FiClock, FiMapPin, FiUsers } from "react-icons/fi";
 import MainLayout from "../layouts/MainLayout";
 import Button from "../components/ui/Button";
+import { to12Hour, formatDate, getTimeOverlap } from "../utils/timeUtils";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -17,6 +18,29 @@ const staggerContainer = {
       staggerChildren: 0.2,
     },
   },
+};
+
+const LocationWithTooltip = ({ label, name, address }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div className="flex items-center text-gray-600 relative group">
+      <FiMapPin className="mr-2" />
+      <span
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        className="cursor-help"
+      >
+        {label}: {name}
+      </span>
+      {showTooltip && (
+        <div className="absolute left-0 top-full mt-2 bg-gray-800 text-white text-sm rounded-md px-3 py-2 z-50 w-64 shadow-lg">
+          <div className="font-medium mb-1">{name}</div>
+          <div className="text-gray-300 text-xs">{address}</div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const MyRides = () => {
@@ -35,7 +59,7 @@ const MyRides = () => {
     // Check for lastCreatedRideId when rides are loaded
     const lastCreatedRideId = localStorage.getItem("lastCreatedRideId");
     if (lastCreatedRideId && rides.length > 0) {
-      const newRide = rides.find(ride => ride._id === lastCreatedRideId);
+      const newRide = rides.find((ride) => ride._id === lastCreatedRideId);
       if (newRide) {
         handleFindMatches(newRide);
         // Clear the stored ID after using it
@@ -48,6 +72,8 @@ const MyRides = () => {
     try {
       const token = localStorage.getItem("authToken");
       if (!token) throw new Error("Please log in to view rides");
+
+      console.log("Fetching rides with token:", token);
 
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/rides/user/rides`,
@@ -64,6 +90,7 @@ const MyRides = () => {
       }
 
       const data = await response.json();
+      console.log("Received rides:", data);
       setRides(data);
     } catch (error) {
       console.error("Error fetching rides:", error);
@@ -96,7 +123,7 @@ const MyRides = () => {
 
       const matchData = await response.json();
       setMatches(matchData);
-      
+
       if (matchData.length === 0) {
         setError("No matches found nearby. We'll keep looking!");
       }
@@ -111,11 +138,6 @@ const MyRides = () => {
   const handleFindMatches = (ride) => {
     setSelectedRide(ride);
     findMatches(ride._id);
-  };
-
-  const formatDate = (dateString) => {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   if (loading) {
@@ -160,35 +182,39 @@ const MyRides = () => {
           )}
 
           {rides.length === 0 ? (
-            <motion.div
-              variants={fadeIn}
-              className="text-center text-gray-600"
-            >
+            <motion.div variants={fadeIn} className="text-center text-gray-600">
               You haven't created any rides yet.
             </motion.div>
           ) : (
-            <motion.div variants={fadeIn} className="space-y-6 max-w-3xl mx-auto">
+            <motion.div
+              variants={fadeIn}
+              className="space-y-6 max-w-3xl mx-auto"
+            >
               {rides.map((ride) => (
                 <div
                   key={ride._id}
                   className={`bg-white p-6 rounded-lg shadow-md transition-all ${
-                    selectedRide?._id === ride._id ? 'ring-2 ring-blue-500' : ''
+                    selectedRide?._id === ride._id ? "ring-2 ring-blue-500" : ""
                   }`}
                 >
                   <div className="flex justify-between items-start">
                     <div className="space-y-2">
-                      <div className="flex items-center text-gray-600">
-                        <FiMapPin className="mr-2" />
-                        <span>From: {ride.pickup}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <FiMapPin className="mr-2" />
-                        <span>To: {ride.destination}</span>
-                      </div>
+                      <LocationWithTooltip
+                        label="From"
+                        name={ride.pickup}
+                        address={ride.pickupAddress}
+                      />
+                      <LocationWithTooltip
+                        label="To"
+                        name={ride.destination}
+                        address={ride.destinationAddress}
+                      />
                       <div className="flex items-center text-gray-600">
                         <FiClock className="mr-2" />
                         <span>
-                          {formatDate(ride.date)} • {ride.timeRangeStart} - {ride.timeRangeEnd}
+                          {formatDate(ride.date)} •{" "}
+                          {to12Hour(ride.timeRangeStart)} -{" "}
+                          {to12Hour(ride.timeRangeEnd)}
                         </span>
                       </div>
                       <div className="flex items-center text-gray-600">
@@ -214,51 +240,75 @@ const MyRides = () => {
                       animate={{ opacity: 1, height: "auto" }}
                       className="mt-6 pt-6 border-t"
                     >
-                      <h3 className="text-lg font-semibold mb-4">Potential Matches</h3>
+                      <h3 className="text-lg font-semibold mb-4">
+                        Potential Matches
+                      </h3>
                       <div className="space-y-4">
-                        {matches.map((match) => (
-                          <div
-                            key={match._id}
-                            className="bg-gray-50 p-4 rounded-lg"
-                          >
-                            <div className="flex justify-between items-start">
-                              <div className="space-y-1">
+                        {matches.map((match) => {
+                          const overlap = getTimeOverlap(
+                            ride.timeRangeStart,
+                            ride.timeRangeEnd,
+                            match.timeRangeStart,
+                            match.timeRangeEnd
+                          );
+
+                          return (
+                            <div
+                              key={match._id}
+                              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                            >
+                              <div className="flex items-center text-gray-600 mb-2">
+                                <FiMapPin className="mr-2" />
+                                <span title={match.destinationAddress}>
+                                  To: {match.destination}
+                                </span>
+                              </div>
+                              <div className="text-sm space-y-2">
                                 <div className="flex items-center text-gray-600">
-                                  <FiMapPin className="mr-2" />
-                                  <span>From: {match.pickup}</span>
-                                </div>
-                                <div className="flex items-center text-gray-600">
-                                  <FiMapPin className="mr-2" />
-                                  <span>To: {match.destination}</span>
+                                  <FiClock className="mr-2" />
+                                  <span>Date: {formatDate(match.date)}</span>
                                 </div>
                                 <div className="flex items-center text-gray-600">
                                   <FiClock className="mr-2" />
                                   <span>
-                                    {match.timeRangeStart} - {match.timeRangeEnd}
+                                    Their time: {to12Hour(match.timeRangeStart)}{" "}
+                                    - {to12Hour(match.timeRangeEnd)}
                                   </span>
                                 </div>
-                                <div className="flex items-center text-gray-600">
-                                  <FiUsers className="mr-2" />
-                                  <span>{match.passengers} passenger(s)</span>
-                                </div>
-                                {match.distanceMiles && (
-                                  <div className="text-sm text-blue-600">
-                                    {match.distanceMiles} miles away
+                                {overlap && (
+                                  <div className="flex items-center text-green-600 font-medium bg-green-50 p-2 rounded">
+                                    <FiClock className="mr-2" />
+                                    <div>
+                                      <div>
+                                        Overlapping time:{" "}
+                                        {to12Hour(overlap.start)} -{" "}
+                                        {to12Hour(overlap.end)}
+                                      </div>
+                                      <div className="text-xs text-green-500">
+                                        ({Math.floor(overlap.duration / 60)}h{" "}
+                                        {overlap.duration % 60}m overlap)
+                                      </div>
+                                    </div>
                                   </div>
                                 )}
                               </div>
-                              <Button
-                                onClick={() => {
-                                  // TODO: Implement match confirmation
-                                  console.log("Match selected:", match._id);
-                                }}
-                                className="bg-green-500 hover:bg-green-600 ml-4"
-                              >
-                                Select Match
-                              </Button>
+                              <div className="flex items-center text-gray-600 mt-2">
+                                <FiUsers className="mr-2" />
+                                <span>{match.passengers} passenger(s)</span>
+                              </div>
+                              <div className="mt-4">
+                                <Button
+                                  onClick={() => {
+                                    console.log("Match selected:", match._id);
+                                  }}
+                                  className="bg-green-500 hover:bg-green-600 text-white w-full"
+                                >
+                                  Select Match
+                                </Button>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </motion.div>
                   )}

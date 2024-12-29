@@ -9,11 +9,11 @@ const rideSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  pickupPlaceID: {
+  pickupAddress: {
     type: String,
     required: true,
   },
-  pickupZipCode: {
+  pickupPlaceID: {
     type: String,
     required: true,
   },
@@ -32,12 +32,16 @@ const rideSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  destinationAddress: {
+    type: String,
+    required: true,
+  },
   destinationPlaceID: {
     type: String,
     required: true,
   },
   date: {
-    type: String,
+    type: Date,
     required: true,
   },
   timeRangeStart: {
@@ -55,11 +59,27 @@ const rideSchema = new mongoose.Schema({
   isMatched: {
     type: Boolean,
     default: false,
-    required: true,
+    index: true  // Add single field index for quick filtering
   },
+  matchedRideId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Ride',
+    default: null
+  },
+  matchRequestedAt: {
+    type: Date,
+    default: null
+  }
+}, {
+  timestamps: true
 });
 
-// Create a 2dsphere index for geospatial queries
+// Create index for location-based queries
 rideSchema.index({ pickupLocation: "2dsphere" });
+
+// Create compound indexes for efficient querying
+rideSchema.index({ isMatched: 1, date: 1 }); // For filtering unmatched rides by date
+rideSchema.index({ isMatched: 1, createdAt: 1 }); // For sorting by creation time
+rideSchema.index({ userId: 1, isMatched: 1 }); // For finding user's rides
 
 module.exports = mongoose.model("Ride", rideSchema);
