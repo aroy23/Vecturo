@@ -1,5 +1,17 @@
 const mongoose = require("mongoose");
 
+const pointSchema = {
+  type: {
+    type: String,
+    enum: ['Point'],
+    required: true
+  },
+  coordinates: {
+    type: [Number],
+    required: true
+  }
+};
+
 const rideSchema = new mongoose.Schema({
   userId: {
     type: String,
@@ -17,17 +29,7 @@ const rideSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  pickupLocation: {
-    type: {
-      type: String,
-      enum: ['Point'],
-      required: true
-    },
-    coordinates: {
-      type: [Number],
-      required: true
-    }
-  },
+  pickupLocation: pointSchema,
   destination: {
     type: String,
     required: true,
@@ -40,6 +42,7 @@ const rideSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  destinationLocation: pointSchema,
   date: {
     type: Date,
     required: true,
@@ -74,8 +77,9 @@ const rideSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Create index for location-based queries
+// Create indexes for location-based queries
 rideSchema.index({ pickupLocation: "2dsphere" });
+rideSchema.index({ destinationLocation: "2dsphere" });
 
 // Create compound indexes for efficient querying
 rideSchema.index({ isMatched: 1, date: 1 }); // For filtering unmatched rides by date

@@ -34,14 +34,9 @@ const MainLayout = ({ children }) => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center gap-8">
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="text-2xl font-bold gradient-text cursor-pointer"
-                  onClick={() => navigate("/home")}
-                >
+                <h1 className="text-2xl font-bold gradient-text cursor-pointer" onClick={() => navigate("/home")}>
                   Vecturo
-                </motion.div>
+                </h1>
                 <nav className="hidden md:flex items-center gap-1">
                   <motion.button
                     onClick={() => navigate("/home")}

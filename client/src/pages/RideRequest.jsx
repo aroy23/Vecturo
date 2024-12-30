@@ -35,6 +35,8 @@ const RideRequest = () => {
     destinationDisplay: "",
     destinationAddress: "",
     destinationPlaceID: "",
+    destinationLat: "",
+    destinationLong: "",
     date: "",
     timeRangeStart: "",
     timeRangeEnd: "",
@@ -55,8 +57,12 @@ const RideRequest = () => {
         [`${type}Address`]: location.description,
         [`${type}PlaceID`]: location.place_id,
         ...(type === 'pickup' && {
-          pickupLat: location.lat,  
-          pickupLong: location.lng,  
+          pickupLat: location.lat,
+          pickupLong: location.lng,
+        }),
+        ...(type === 'destination' && {
+          destinationLat: location.lat,
+          destinationLong: location.lng,
         })
       };
       console.log(`Updated form data for ${type}:`, newData);
@@ -70,10 +76,14 @@ const RideRequest = () => {
       [type]: value,
       [`${type}Display`]: value,
       [`${type}Address`]: value,
-      [`${type}PlaceID`]: "", 
+      [`${type}PlaceID`]: "",
       ...(type === 'pickup' && {
         pickupLat: '',
         pickupLong: '',
+      }),
+      ...(type === 'destination' && {
+        destinationLat: '',
+        destinationLong: '',
       })
     }));
   };
@@ -159,6 +169,8 @@ const RideRequest = () => {
         pickupLat: formData.pickupLat,
         pickupLong: formData.pickupLong,
         destinationPlaceID: formData.destinationPlaceID,
+        destinationLat: formData.destinationLat,
+        destinationLong: formData.destinationLong,
         date: formData.date,
         timeRangeStart: formData.timeRangeStart,
         timeRangeEnd: formData.timeRangeEnd,
