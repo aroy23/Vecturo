@@ -1,6 +1,6 @@
 const User = require("../models/User");
 
-exports.createOrUpdateUser = async (req, res) => {
+const createOrUpdateUser = async (req, res) => {
   try {
     const { uid, email, displayName, phoneNumber } = req.body;
 
@@ -35,4 +35,8 @@ exports.createOrUpdateUser = async (req, res) => {
     console.error("Error in createOrUpdateUser:", error);
     res.status(500).json({ error: "Error creating/updating user" });
   }
+};
+
+module.exports = {
+  createOrUpdateUser,
 };

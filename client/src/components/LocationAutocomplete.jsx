@@ -1,61 +1,170 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FiMapPin } from 'react-icons/fi';
+import React, { useState, useEffect, useRef } from "react";
+import { FiMapPin } from "react-icons/fi";
 
-const LocationAutocomplete = ({ value, onChange, placeholder, label, id }) => {
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+const loadGoogleMapsScript = () => {
+  return new Promise((resolve, reject) => {
+    if (window.google) {
+      resolve(window.google);
+      return;
+    }
+
+    if (document.querySelector("#google-maps-script")) {
+      // Script is already loading
+      const checkGoogle = setInterval(() => {
+        if (window.google) {
+          clearInterval(checkGoogle);
+          resolve(window.google);
+        }
+      }, 100);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "google-maps-script";
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+
+    script.onload = () => {
+      resolve(window.google);
+    };
+
+    script.onerror = (error) => {
+      reject(new Error("Failed to load Google Maps API"));
+    };
+
+    document.head.appendChild(script);
+  });
+};
+
+const LocationAutocomplete = ({ value, onChange, onSelect, label }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [error, setError] = useState(null);
   const autocompleteRef = useRef(null);
+  const placesServiceRef = useRef(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
-    // Load Google Maps JavaScript API
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    script.onload = initAutocomplete;
-    document.head.appendChild(script);
+    let isMounted = true;
+
+    const initializeGoogleMaps = async () => {
+      try {
+        await loadGoogleMapsScript();
+        if (
+          isMounted &&
+          window.google &&
+          window.google.maps &&
+          window.google.maps.places
+        ) {
+          autocompleteRef.current =
+            new window.google.maps.places.AutocompleteService();
+          // Initialize PlacesService with a dummy div (required by Google Maps API)
+          const mapDiv = document.createElement("div");
+          const map = new window.google.maps.Map(mapDiv);
+          placesServiceRef.current =
+            new window.google.maps.places.PlacesService(map);
+        }
+      } catch (error) {
+        console.error("Error loading Google Maps:", error);
+        setError(
+          "Unable to load location suggestions. Please try again later."
+        );
+      }
+    };
+
+    initializeGoogleMaps();
 
     return () => {
-      document.head.removeChild(script);
+      isMounted = false;
     };
   }, []);
 
-  const initAutocomplete = () => {
-    autocompleteRef.current = new window.google.maps.places.AutocompleteService();
+  const getPlaceDetails = async (placeId, suggestion) => {
+    return new Promise((resolve, reject) => {
+      const request = {
+        placeId: placeId,
+        fields: ["formatted_address", "geometry", "address_components"],
+      };
+
+      placesServiceRef.current.getDetails(request, (place, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK) {
+          console.log('Place details received:', place);
+
+          const locationDetails = {
+            description: place.formatted_address,
+            displayText: suggestion.structured_formatting?.main_text || suggestion.description.split(',')[0],
+            place_id: placeId,
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          };
+          
+          console.log('Location details prepared:', locationDetails);
+          resolve(locationDetails);
+        } else {
+          console.error('Failed to get place details, status:', status);
+          reject(new Error("Failed to get place details"));
+        }
+      });
+    });
   };
 
-  const handleInput = (e) => {
-    const value = e.target.value;
-    onChange(value);
+  const handleSuggestionClick = async (suggestion) => {
+    try {
+      console.log('Suggestion clicked:', suggestion);
+      const locationDetails = await getPlaceDetails(suggestion.place_id, suggestion);
+      onSelect(locationDetails);
+      setShowSuggestions(false);
+      setSuggestions([]);
+    } catch (error) {
+      console.error("Error getting place details:", error);
+      setError("Error getting location details");
+    }
+  };
 
-    if (value.length > 0 && autocompleteRef.current) {
-      autocompleteRef.current.getPlacePredictions(
-        {
-          input: value,
-          componentRestrictions: { country: 'us' }, // Restrict to US
-          types: ['establishment', 'geocode'] // Include both places and addresses
-        },
-        handleAutocompleteResults
-      );
+  const handleInput = async (e) => {
+    const inputValue = e.target.value;
+    onChange(inputValue);
+
+    if (!autocompleteRef.current) {
+      console.warn("Google Maps API not loaded yet");
+      return;
+    }
+
+    if (inputValue.length > 0) {
+      try {
+        const request = {
+          input: inputValue,
+          componentRestrictions: { country: "us" },
+        };
+
+        const { predictions } = await new Promise((resolve, reject) => {
+          autocompleteRef.current.getPlacePredictions(
+            request,
+            (predictions, status) => {
+              if (status === window.google.maps.places.PlacesServiceStatus.OK) {
+                resolve({ predictions });
+              } else {
+                reject(new Error("Failed to get predictions"));
+              }
+            }
+          );
+        });
+
+        setSuggestions(predictions || []);
+        setShowSuggestions(true);
+      } catch (error) {
+        console.error("Error getting predictions:", error);
+        setSuggestions([]);
+      }
     } else {
       setSuggestions([]);
+      setShowSuggestions(false);
     }
   };
 
-  const handleAutocompleteResults = (predictions, status) => {
-    if (status === window.google.maps.places.PlacesServiceStatus.OK) {
-      setSuggestions(predictions);
-      setShowSuggestions(true);
-    }
-  };
-
-  const handleSuggestionClick = (suggestion) => {
-    onChange(suggestion.description);
-    setSuggestions([]);
-    setShowSuggestions(false);
-  };
-
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (inputRef.current && !inputRef.current.contains(event.target)) {
@@ -63,37 +172,45 @@ const LocationAutocomplete = ({ value, onChange, placeholder, label, id }) => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
   return (
     <div className="form-group">
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700">
+      <label
+        htmlFor="location"
+        className="block text-sm font-medium text-gray-700"
+      >
         {label}
       </label>
       <div className="relative mt-1" ref={inputRef}>
         <FiMapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         <input
           type="text"
-          id={id}
-          value={value}
+          id="location"
+          value={value?.displayText || value || ''}
           onChange={handleInput}
-          placeholder={placeholder}
           className="input pl-10 w-full"
           required
         />
+        {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
         {showSuggestions && suggestions.length > 0 && (
           <ul className="absolute z-10 w-full bg-white mt-1 rounded-md shadow-lg max-h-60 overflow-auto">
             {suggestions.map((suggestion) => (
               <li
                 key={suggestion.place_id}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
               >
-                {suggestion.description}
+                <div className="font-medium">
+                  {suggestion.structured_formatting?.main_text}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {suggestion.structured_formatting?.secondary_text}
+                </div>
               </li>
             ))}
           </ul>
