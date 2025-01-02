@@ -123,6 +123,8 @@ const findMatches = async (req, res) => {
     .sort({ createdAt: 1 })
     .session(session);
 
+    console.log("Nearby pickups found:", nearbyPickups.length);
+
     if (nearbyPickups.length === 0) {
       await session.abortTransaction();
       session.endSession();
@@ -140,10 +142,17 @@ const findMatches = async (req, res) => {
       return { match, distance };
     });
 
+    console.log("Potential matches with distances:", potentialMatches.map(m => ({
+      id: m.match._id,
+      distance: m.distance
+    })));
+
     // Filter matches within 0.2 miles of destination
     const destinationMatches = potentialMatches.filter(
       ({ distance }) => distance <= 0.2
     );
+
+    console.log("Matches within 0.2 miles of destination:", destinationMatches.length);
 
     if (destinationMatches.length === 0) {
       await session.abortTransaction();
@@ -156,8 +165,16 @@ const findMatches = async (req, res) => {
     for (const { match } of destinationMatches) {
       const matchStart = convertTimeToMinutes(match.timeRangeStart);
       const matchEnd = convertTimeToMinutes(match.timeRangeEnd);
+      const rideStart = convertTimeToMinutes(ride.timeRangeStart);
+      const rideEnd = convertTimeToMinutes(ride.timeRangeEnd);
+
+      console.log("Checking time overlap:", {
+        ride: { start: ride.timeRangeStart, end: ride.timeRangeEnd },
+        match: { start: match.timeRangeStart, end: match.timeRangeEnd }
+      });
 
       const overlap = getTimeOverlap(rideStart, rideEnd, matchStart, matchEnd);
+      console.log("Time overlap result:", overlap);
 
       if (overlap) {
         finalMatch = { match, overlap };
@@ -357,7 +374,7 @@ function getTimeOverlap(start1, end1, start2, end2) {
   const overlapStart = Math.max(start1, start2);
   const overlapEnd = Math.min(end1, end2);
 
-  if (overlapStart < overlapEnd) {
+  if (overlapStart <= overlapEnd) {
     return {
       start: `${Math.floor(overlapStart / 60)}:${String(
         overlapStart % 60

@@ -44,13 +44,62 @@ const LocationWithTooltip = ({ label, name, address }) => {
   );
 };
 
+const isRideExpired = (ride) => {
+  try {
+    // Parse the date and time properly considering timezone
+    const [year, month, day] = ride.date.split("T")[0].split("-").map(Number);
+    const [hours, minutes] = ride.timeRangeStart.split(":").map(Number);
+
+    const rideStartTime = new Date(year, month - 1, day, hours, minutes);
+    const currentTime = new Date();
+
+    // If there's a matched ride with valid data, use the later of the two start times
+    if (
+      ride.matchedRideId &&
+      ride.matchedRideId.date &&
+      ride.matchedRideId.timeRangeStart
+    ) {
+      const [matchedYear, matchedMonth, matchedDay] = ride.matchedRideId.date
+        .split("T")[0]
+        .split("-")
+        .map(Number);
+      const [matchedHours, matchedMinutes] = ride.matchedRideId.timeRangeStart
+        .split(":")
+        .map(Number);
+      const matchedStartTime = new Date(
+        matchedYear,
+        matchedMonth - 1,
+        matchedDay,
+        matchedHours,
+        matchedMinutes
+      );
+
+      // Use the later start time between the two rides
+      const effectiveStartTime = new Date(
+        Math.max(rideStartTime.getTime(), matchedStartTime.getTime())
+      );
+      console.log("Effective start time:", effectiveStartTime);
+      console.log("Current time:", currentTime);
+      console.log("Is expired:", effectiveStartTime < currentTime);
+
+      return effectiveStartTime < currentTime;
+    }
+
+    console.log("Ride start time:", rideStartTime);
+    console.log("Current time:", currentTime);
+    console.log("Is expired:", rideStartTime < currentTime);
+
+    return rideStartTime < currentTime;
+  } catch (error) {
+    console.error("Error checking if ride is expired:", error);
+    return false; // Default to not expired if there's an error
+  }
+};
+
 const MyRides = () => {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedRide, setSelectedRide] = useState(null);
-  const [matches, setMatches] = useState([]);
-  const [matchLoading, setMatchLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -89,50 +138,6 @@ const MyRides = () => {
     }
   };
 
-  const findMatches = async (rideId) => {
-    setMatchLoading(true);
-    setError(null);
-    try {
-      const token = localStorage.getItem("authToken");
-      if (!token) throw new Error("Please log in to find matches");
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/rides/${rideId}/matches`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to find matches");
-      }
-
-      const matchData = await response.json();
-      setMatches(matchData);
-
-      if (matchData.length === 0) {
-        setError("No matches found nearby. We'll keep looking!");
-        // Clear the error message after 2 seconds
-        setTimeout(() => {
-          setError(null);
-        }, 2000);
-      }
-    } catch (error) {
-      console.error("Error finding matches:", error);
-      setError(error.message);
-    } finally {
-      setMatchLoading(false);
-    }
-  };
-
-  const handleFindMatches = (ride) => {
-    setSelectedRide(ride);
-    findMatches(ride._id);
-  };
-
   if (loading) {
     return (
       <MainLayout>
@@ -162,7 +167,7 @@ const MyRides = () => {
             variants={fadeIn}
             className="text-center text-gray-600 mb-12 max-w-2xl mx-auto"
           >
-            View and manage your ride requests
+            View Your Ride Requests
           </motion.p>
 
           {error && (
@@ -187,7 +192,11 @@ const MyRides = () => {
                 <div
                   key={ride._id}
                   className={`bg-white p-6 rounded-lg shadow-md transition-all ring-2 ${
-                    ride.isMatched ? "ring-green-500" : "ring-blue-500"
+                    ride.isMatched
+                      ? isRideExpired(ride)
+                        ? "ring-red-500"
+                        : "ring-green-500"
+                      : "ring-blue-500"
                   }`}
                 >
                   <div className="flex justify-between items-start">
@@ -206,13 +215,19 @@ const MyRides = () => {
                         <FiClock className="mr-2" />
                         <span>
                           {formatDate(ride.date)} •{" "}
-                          {to12Hour(ride.timeRangeStart)} -{" "}
-                          {to12Hour(ride.timeRangeEnd)}
+                          {ride.timeRangeStart === ride.timeRangeEnd
+                            ? "Start Time"
+                            : "Start Time Interval"}{" "}
+                          {ride.timeRangeStart === ride.timeRangeEnd
+                            ? to12Hour(ride.timeRangeStart)
+                            : `${to12Hour(ride.timeRangeStart)} - ${to12Hour(
+                                ride.timeRangeEnd
+                              )}`}
                         </span>
                       </div>
                       <div className="flex items-center text-gray-600">
                         <FiUsers className="mr-2" />
-                        <span>{ride.passengers} passenger(s)</span>
+                        <span>{ride.passengers} Passenger(s)</span>
                       </div>
                     </div>
                     {!ride.isMatched && (
@@ -223,13 +238,20 @@ const MyRides = () => {
                         </div>
                       </div>
                     )}
-                    {ride.isMatched && (
+                    {ride.isMatched && !isRideExpired(ride) && (
                       <Button
                         onClick={() => navigate(`/rides/${ride._id}/details`)}
                         className="ml-4 bg-green-500 hover:bg-green-600 text-white"
                       >
                         View Details
                       </Button>
+                    )}
+                    {ride.isMatched && isRideExpired(ride) && (
+                      <div className="flex flex-col items-center justify-center ml-4">
+                        <div className="text-sm text-red-500 font-medium">
+                          Expired
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -240,7 +262,13 @@ const MyRides = () => {
                       animate={{ opacity: 1, height: "auto" }}
                       className="mt-6 pt-6 border-t"
                     >
-                      <h3 className="text-lg font-semibold mb-4 text-green-600">
+                      <h3
+                        className={`text-lg font-semibold mb-4 ${
+                          isRideExpired(ride)
+                            ? "text-red-600"
+                            : "text-green-600"
+                        }`}
+                      >
                         Matched Ride
                       </h3>
                       <div className="bg-white p-4 rounded-lg shadow-md">
@@ -260,9 +288,18 @@ const MyRides = () => {
                           <div className="flex items-center text-gray-600">
                             <FiClock className="mr-2 text-lg" />
                             <span className="text-base">
-                              Their time:{" "}
-                              {to12Hour(ride.matchedRideId.timeRangeStart)} -{" "}
-                              {to12Hour(ride.matchedRideId.timeRangeEnd)}
+                              {ride.matchedRideId.timeRangeStart ===
+                              ride.matchedRideId.timeRangeEnd
+                                ? "Start Time"
+                                : "Start Time Interval"}{" "}
+                              {ride.matchedRideId.timeRangeStart ===
+                              ride.matchedRideId.timeRangeEnd
+                                ? to12Hour(ride.matchedRideId.timeRangeStart)
+                                : `${to12Hour(
+                                    ride.matchedRideId.timeRangeStart
+                                  )} - ${to12Hour(
+                                    ride.matchedRideId.timeRangeEnd
+                                  )}`}
                             </span>
                           </div>
                           {getTimeOverlap(
@@ -271,30 +308,65 @@ const MyRides = () => {
                             ride.matchedRideId.timeRangeStart,
                             ride.matchedRideId.timeRangeEnd
                           ) && (
-                            <div className="flex items-center text-green-600 font-medium bg-green-50 p-3 rounded">
+                            <div
+                              className={`flex items-center ${
+                                isRideExpired(ride)
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                              } font-medium bg-${
+                                isRideExpired(ride) ? "red" : "green"
+                              }-50 p-3 rounded`}
+                            >
                               <FiClock className="mr-2 text-lg" />
                               <div>
                                 <div className="text-base">
-                                  Overlapping time:{" "}
-                                  {to12Hour(
-                                    getTimeOverlap(
+                                  <span
+                                    className={
+                                      isRideExpired(ride)
+                                        ? "text-red-600"
+                                        : "text-green-600"
+                                    }
+                                  >
+                                    {getTimeOverlap(
                                       ride.timeRangeStart,
                                       ride.timeRangeEnd,
                                       ride.matchedRideId.timeRangeStart,
                                       ride.matchedRideId.timeRangeEnd
-                                    ).start
-                                  )}{" "}
-                                  -{" "}
-                                  {to12Hour(
-                                    getTimeOverlap(
+                                    ) === null
+                                      ? "Start Time"
+                                      : "Overlapping Start Time Interval"}
+                                    :{" "}
+                                    {to12Hour(
+                                      getTimeOverlap(
+                                        ride.timeRangeStart,
+                                        ride.timeRangeEnd,
+                                        ride.matchedRideId.timeRangeStart,
+                                        ride.matchedRideId.timeRangeEnd
+                                      )?.start
+                                    )}
+                                    {getTimeOverlap(
                                       ride.timeRangeStart,
                                       ride.timeRangeEnd,
                                       ride.matchedRideId.timeRangeStart,
                                       ride.matchedRideId.timeRangeEnd
-                                    ).end
-                                  )}
+                                    ) !== null &&
+                                      ` - ${to12Hour(
+                                        getTimeOverlap(
+                                          ride.timeRangeStart,
+                                          ride.timeRangeEnd,
+                                          ride.matchedRideId.timeRangeStart,
+                                          ride.matchedRideId.timeRangeEnd
+                                        ).end
+                                      )}`}
+                                  </span>
                                 </div>
-                                <div className="text-sm text-green-500 mt-1">
+                                <div
+                                  className={`text-sm ${
+                                    isRideExpired(ride)
+                                      ? "text-red-500"
+                                      : "text-green-500"
+                                  } mt-1`}
+                                >
                                   (
                                   {Math.floor(
                                     getTimeOverlap(
@@ -320,89 +392,6 @@ const MyRides = () => {
                       </div>
                     </motion.div>
                   )}
-
-                  {/* Show potential matches for selected ride */}
-                  {!ride.isMatched &&
-                    selectedRide?._id === ride._id &&
-                    matches.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="mt-6 pt-6 border-t"
-                      >
-                        <h3 className="text-lg font-semibold mb-4">
-                          Potential Matches
-                        </h3>
-                        <div className="space-y-4">
-                          {matches.map((match) => {
-                            const overlap = getTimeOverlap(
-                              ride.timeRangeStart,
-                              ride.timeRangeEnd,
-                              match.timeRangeStart,
-                              match.timeRangeEnd
-                            );
-
-                            return (
-                              <div
-                                key={match._id}
-                                className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
-                              >
-                                <div className="flex items-center text-gray-600 mb-2">
-                                  <FiMapPin className="mr-2" />
-                                  <span title={match.destinationAddress}>
-                                    To: {match.destination}
-                                  </span>
-                                </div>
-                                <div className="text-sm space-y-2">
-                                  <div className="flex items-center text-gray-600">
-                                    <FiClock className="mr-2" />
-                                    <span>Date: {formatDate(match.date)}</span>
-                                  </div>
-                                  <div className="flex items-center text-gray-600">
-                                    <FiClock className="mr-2" />
-                                    <span>
-                                      Their time:{" "}
-                                      {to12Hour(match.timeRangeStart)} -{" "}
-                                      {to12Hour(match.timeRangeEnd)}
-                                    </span>
-                                  </div>
-                                  {overlap && (
-                                    <div className="flex items-center text-green-600 font-medium bg-green-50 p-2 rounded">
-                                      <FiClock className="mr-2" />
-                                      <div>
-                                        <div>
-                                          Overlapping time:{" "}
-                                          {to12Hour(overlap.start)} -{" "}
-                                          {to12Hour(overlap.end)}
-                                        </div>
-                                        <div className="text-xs text-green-500">
-                                          ({Math.floor(overlap.duration / 60)}h{" "}
-                                          {overlap.duration % 60}m overlap)
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center text-gray-600 mt-2">
-                                  <FiUsers className="mr-2" />
-                                  <span>{match.passengers} passenger(s)</span>
-                                </div>
-                                <div className="mt-4">
-                                  <Button
-                                    onClick={() => {
-                                      console.log("Match selected:", match._id);
-                                    }}
-                                    className="bg-green-500 hover:bg-green-600 text-white w-full"
-                                  >
-                                    Select Match
-                                  </Button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </motion.div>
-                    )}
                 </div>
               ))}
             </motion.div>

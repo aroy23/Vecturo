@@ -25,7 +25,6 @@ const createOrUpdateUser = async (req, res) => {
         email,
         fullName: displayName,
         phoneNumber: phoneNumber || "",
-        university: "", // This can be updated later in profile
       });
       await user.save();
     }
@@ -37,6 +36,23 @@ const createOrUpdateUser = async (req, res) => {
   }
 };
 
+const getUser = async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const user = await User.findOne({ uid });
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error in getUser:", error);
+    res.status(500).json({ error: "Error fetching user" });
+  }
+};
+
 module.exports = {
   createOrUpdateUser,
+  getUser,
 };

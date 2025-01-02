@@ -3,12 +3,14 @@ import { motion } from "framer-motion";
 import { Menu, MenuItem, MenuItems, MenuButton } from "@headlessui/react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import PhonePopup from "../components/PhonePopup";
 
 const MainLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, logout } = useAuth();
   const [profileUrl, setProfileUrl] = useState(null);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
 
   const isHomePage = location.pathname === "/home";
 
@@ -103,6 +105,18 @@ const MainLayout = ({ children }) => {
                         <MenuItem>
                           {({ active }) => (
                             <button
+                              onClick={() => setShowPhoneModal(true)}
+                              className={`${
+                                active ? "bg-gray-100" : ""
+                              } block w-full px-4 py-2 text-left text-sm text-gray-700`}
+                            >
+                              Edit Phone Number
+                            </button>
+                          )}
+                        </MenuItem>
+                        <MenuItem>
+                          {({ active }) => (
+                            <button
                               onClick={handleSignOut}
                               className={`${
                                 active ? "bg-gray-100" : ""
@@ -130,18 +144,22 @@ const MainLayout = ({ children }) => {
           </div>
         </header>
 
-        <main className="pt-8">{children}</main>
-
-        <motion.footer
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="bg-gray-900 text-white py-8 min-w-[1024px]"
-        >
-          <div className="container-padding text-center">
-            <p>&copy; 2024 Vecturo. All rights reserved.</p>
-          </div>
-        </motion.footer>
+        <main className="pt-16">{children}</main>
+        <PhonePopup
+          isOpen={showPhoneModal}
+          onClose={() => setShowPhoneModal(false)}
+          currentUser={currentUser}
+        />
       </div>
+      <motion.footer
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="bg-gray-900 text-white py-8 min-w-[1024px]"
+      >
+        <div className="container-padding text-center">
+          <p>&copy; 2024 Vecturo. All rights reserved.</p>
+        </div>
+      </motion.footer>
     </div>
   );
 };

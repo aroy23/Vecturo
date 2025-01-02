@@ -12,10 +12,10 @@ import {
   FiMapPin,
   FiUsers,
   FiArrowLeft,
-  FiNavigation,
   FiExternalLink,
   FiTruck,
 } from "react-icons/fi";
+import { FaWalking } from "react-icons/fa";
 import { GoogleMap, Polyline, Marker } from "@react-google-maps/api";
 import MainLayout from "../layouts/MainLayout";
 import Button from "../components/ui/Button";
@@ -121,12 +121,15 @@ const MapWithDirections = ({
     [map]
   );
 
-  const openInGoogleMaps = useCallback((origin, destination) => {
-    if (!origin || !destination) return;
+  const openInGoogleMaps = useCallback(
+    (origin, destination) => {
+      if (!origin || !destination) return;
 
-    const url = `https://www.google.com/maps/dir/?api=1&origin=place_id:${origin}&destination=place_id:${destination}&travelmode=${mode.toLowerCase()}`;
-    window.open(url, "_blank");
-  }, [mode]);
+      const url = `https://www.google.com/maps/dir/?api=1&origin=place_id:${origin}&destination=place_id:${destination}&travelmode=${mode.toLowerCase()}`;
+      window.open(url, "_blank");
+    },
+    [mode]
+  );
 
   // Get place details when map is loaded
   useEffect(() => {
@@ -329,11 +332,6 @@ const MapWithDirections = ({
       {routeInfo && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm mb-2">
           <div className="flex items-center text-gray-600">
-            {mode === "WALKING" ? (
-              <FiNavigation className="mr-2" />
-            ) : (
-              <FiTruck className="mr-2" />
-            )}
             <span>
               {routeInfo.distance} • {routeInfo.duration}{" "}
               {routeInfo.mode.toLowerCase()}
@@ -351,78 +349,6 @@ const MapWithDirections = ({
           options={options}
         />
       </div>
-    </div>
-  );
-};
-
-const RideInstructions = ({ ride }) => {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-start">
-        <FiNavigation className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
-        <div>
-          <h3 className="text-sm font-medium text-gray-800">
-            Get to the meeting point
-          </h3>
-          {ride.pickupPlaceID === ride.startingPointPlaceID ? (
-            <p className="text-sm text-gray-700 mt-1">
-              You're already at the meeting point ({ride.startingPoint}). Wait
-              for the other rider to arrive.
-            </p>
-          ) : (
-            <p className="text-sm text-gray-700 mt-1">
-              Walk to the meeting point at {ride.startingPoint}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {ride.pickupPlaceID !== ride.startingPointPlaceID && (
-        <>
-          <div className="flex items-start">
-            <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
-            <div>
-              <h3 className="text-sm font-medium text-gray-800">
-                {ride.pickupAddress}
-              </h3>
-              <p className="text-xs text-gray-500">Point A</p>
-            </div>
-          </div>
-
-          <div className="flex items-start">
-            <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
-            <div>
-              <h3 className="text-sm font-medium text-gray-800">
-                {ride.startingPointAddress}
-              </h3>
-              <p className="text-xs text-gray-500">Point B</p>
-            </div>
-          </div>
-
-          <div className="rounded-lg overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm mb-2">
-              <div className="flex items-center text-gray-600">
-                <FiNavigation className="mr-2" />
-                <span>Walking directions</span>
-              </div>
-              <button
-                onClick={() =>
-                  openInGoogleMaps(ride.pickupPlaceID, ride.startingPointPlaceID)
-                }
-                className="flex items-center text-sm text-blue-600 hover:text-blue-700 transition-colors"
-              >
-                <FiExternalLink className="mr-1" />
-                Open in Google Maps
-              </button>
-            </div>
-            <MapWithDirections
-              pickupPlaceID={ride.pickupPlaceID}
-              startingPointPlaceID={ride.startingPointPlaceID}
-              mode="WALKING"
-            />
-          </div>
-        </>
-      )}
     </div>
   );
 };
@@ -564,7 +490,7 @@ const MatchedRideDetails = () => {
                   <div className="flex items-center text-gray-600">
                     <FiClock className="mr-2" />
                     <span>
-                      {formatDate(ride.date)} • {overlapStartTime} - {overlapEndTimeText}
+                      {formatDate(ride.date)} • {minutesToTime(overlapStart)}
                     </span>
                   </div>
                   <div className="flex items-center text-gray-600">
@@ -583,8 +509,67 @@ const MatchedRideDetails = () => {
                     </h2>
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <div className="text-sm text-gray-700">
-                        <RideInstructions ride={ride} />
+                        <div className="flex items-center mb-2">
+                          <FaWalking className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
+                          <span>
+                            Please Arrive at the Meeting Point{" "}
+                            <span className="font-semibold">5-10</span> minutes
+                            Before{" "}
+                            <span className="font-semibold">
+                              {minutesToTime(overlapStart)}
+                            </span>
+                          </span>
+                        </div>
+
+                        {/* Starting Point */}
+                        <div className="flex items-start mt-4">
+                          <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-800">
+                              {ride.pickupAddress}
+                            </h3>
+                            <p className="text-xs text-gray-500">Point A</p>
+                          </div>
+                        </div>
+
+                        {/* Meeting Point */}
+                        <div className="flex items-start mt-2">
+                          <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-800">
+                              {ride.startingPointAddress}
+                            </h3>
+                            <p className="text-xs text-gray-500">Point B</p>
+                          </div>
+                        </div>
                       </div>
+                      {ride.startingPointPlaceID !== ride.pickupPlaceID && (
+                        <div className="mt-4 rounded-lg overflow-hidden">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm mb-2">
+                            <div className="flex items-center text-gray-600">
+                              <FaWalking className="mr-2 text-lg" />
+                              <span>Walking Directions</span>
+                            </div>
+                            <button
+                              onClick={() =>
+                                openInGoogleMaps(
+                                  ride.pickupPlaceID,
+                                  ride.startingPointPlaceID
+                                )
+                              }
+                              className="flex items-center text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                            >
+                              <FiExternalLink className="mr-1" />
+                              Open in Google Maps
+                            </button>
+                          </div>
+                          <MapWithDirections
+                            pickupPlaceID={ride.pickupPlaceID}
+                            startingPointPlaceID={ride.startingPointPlaceID}
+                            mode="WALKING"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -594,8 +579,13 @@ const MatchedRideDetails = () => {
                     </h2>
                     <div className="bg-blue-50 p-4 rounded-lg space-y-4">
                       <div className="flex items-center text-sm text-gray-700">
-                        <FiClock className="mr-2 text-blue-600" />
-                        <span>Take your rideshare at {overlapStartTime}:</span>
+                        <FiTruck className="mr-2 text-blue-600" />
+                        <span>
+                          Take your rideshare at{" "}
+                          <span className="font-semibold">
+                            {minutesToTime(overlapStart)}
+                          </span>
+                        </span>
                       </div>
 
                       {/* Starting Point */}
@@ -655,16 +645,17 @@ const MatchedRideDetails = () => {
                     </h2>
                     <div className="bg-blue-50 p-4 rounded-lg space-y-4">
                       <div className="flex items-start">
-                        <FiNavigation className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
+                        <FaWalking className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
                         <div>
                           <h3 className="text-sm font-medium text-gray-800">
-                            Get to your destination
+                            Get to Your Destination
                           </h3>
                           {ride.destinationPlaceID ===
                           ride.endingPointPlaceID ? (
                             <p className="text-sm text-gray-700 mt-1">
-                              You've been dropped off at your destination (
-                              {ride.destinationAddress}). Have a great day!
+                              The Rideshare Service Will Drop You off at Your
+                              Destination <br />
+                              {ride.destinationAddress}
                             </p>
                           ) : (
                             <p className="text-sm text-gray-700 mt-1">
@@ -700,8 +691,8 @@ const MatchedRideDetails = () => {
                           <div className="rounded-lg overflow-hidden">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm mb-2">
                               <div className="flex items-center text-gray-600">
-                                <FiNavigation className="mr-2" />
-                                <span>Walking directions</span>
+                                <FaWalking className="mr-2 text-lg" />
+                                <span>Walking Directions</span>
                               </div>
                               <button
                                 onClick={() =>

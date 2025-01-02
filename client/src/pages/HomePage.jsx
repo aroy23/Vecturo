@@ -40,8 +40,7 @@ const Homepage = () => {
             variants={fadeIn}
             className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto"
           >
-            Connecting students for affordable and eco-friendly ridesharing on
-            campus. Join the smart transportation revolution today.
+            Connecting People for Affordable and Eco-Friendly Ridesharing.
           </motion.p>
           <motion.div variants={fadeIn} className="mb-12">
             <Button className="gap-2" onClick={() => navigate("/ride-request")}>
@@ -83,26 +82,25 @@ const Homepage = () => {
             variants={fadeIn}
             className="text-center text-gray-600 mb-16 max-w-2xl mx-auto"
           >
-            Experience a smarter way to share rides with features designed for
-            your convenience
+            Experience a Smarter Way to Share Rides With Features Designed For
+            Your Convenience
           </motion.p>
           <div className="grid md:grid-cols-3 gap-12">
             {[
               {
                 icon: <FiUsers className="w-8 h-8" />,
                 title: "Smart Matching",
-                description:
-                  "Find rideshare partners traveling your way effortlessly.",
+                description: "Find Rideshare Partners Effortlessly",
               },
               {
                 icon: <FiDollarSign className="w-8 h-8" />,
                 title: "Cost Efficiency",
-                description: "Share rides and split costs for maximum savings.",
+                description: "Share Rides and Split Costs for Maximum Savings",
               },
               {
                 icon: <FiShield className="w-8 h-8" />,
                 title: "Secure and Reliable",
-                description: "Authenticated users ensure a trusted community.",
+                description: "Authenticated Users Ensure a Trusted Community",
               },
             ].map((feature, index) => (
               <motion.div
@@ -142,18 +140,18 @@ const Homepage = () => {
                 {
                   step: 1,
                   title: "Set Your Route",
-                  description: "Input your starting point and destination.",
+                  description: "Input Your Starting Point and Destination",
                 },
                 {
                   step: 2,
                   title: "Get Matched",
                   description:
-                    "Get matched with a ride partner traveling the same way.",
+                    "Get Matched With a Ride Partner Traveling the Same Way",
                 },
                 {
                   step: 3,
                   title: "Share & Save",
-                  description: "Share the ride and enjoy the savings.",
+                  description: "Share the Ride and Enjoy the Savings",
                 },
               ].map((item, index) => (
                 <motion.div
