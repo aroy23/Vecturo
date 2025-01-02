@@ -180,25 +180,27 @@ const LocationAutocomplete = ({ value, onChange, onSelect, label }) => {
 
   return (
     <div className="form-group">
-      <label
-        htmlFor="location"
-        className="block text-sm font-medium text-gray-700"
-      >
-        {label}
-      </label>
+      {label && (
+        <label
+          htmlFor="location"
+          className="block text-sm font-medium text-gray-700"
+        >
+          {label}
+        </label>
+      )}
       <div className="relative mt-1" ref={inputRef}>
-        <FiMapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         <input
           type="text"
           id="location"
           value={value?.displayText || value || ''}
           onChange={handleInput}
-          className="input pl-10 w-full"
+          className="w-full py-3 pl-12 bg-gray-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          placeholder="Enter location..."
           required
         />
         {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
         {showSuggestions && suggestions.length > 0 && (
-          <ul className="absolute z-10 w-full bg-white mt-1 rounded-md shadow-lg max-h-60 overflow-auto">
+          <ul className="absolute z-50 w-full bg-white mt-1 rounded-md shadow-lg max-h-60 overflow-auto">
             {suggestions.map((suggestion) => (
               <li
                 key={suggestion.place_id}

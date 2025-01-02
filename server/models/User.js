@@ -19,18 +19,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
-  university: {
-    type: String,
-    required: false,
-  },
-  rating: {
-    type: Number,
-    default: 5.0,
-  },
-  ridesCompleted: {
-    type: Number,
-    default: 0,
-  },
   createdAt: {
     type: Date,
     default: Date.now,

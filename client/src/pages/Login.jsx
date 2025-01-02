@@ -11,46 +11,70 @@ import {
 import { auth } from "../config/firebase";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { FcGoogle } from "react-icons/fc";
+import PhonePopup from "../components/PhonePopup";
 import axios from "axios";
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [userData, setUserData] = useState(null);
   const navigate = useNavigate();
   const toast = useToast();
 
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
+      console.log("Starting Google sign in...");
+      
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
+      console.log("Google sign in successful");
 
       // Get the ID token
       const idToken = await result.user.getIdToken();
+      console.log("Got ID token");
 
       // Store the token
       localStorage.setItem("authToken", idToken);
+      localStorage.setItem("userId", result.user.uid);
+      setUserData(result.user);
 
-      // Create/update user in MongoDB
-      await axios.post("/api/users", {
-        uid: result.user.uid,
-        email: result.user.email,
-        displayName: result.user.displayName,
-        phoneNumber: result.user.phoneNumber,
-      });
+      try {
+        // Try to get user data
+        const userResponse = await axios.get(`/api/users/${result.user.uid}`, {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
 
-      toast({
-        title: "Success",
-        description: "Successfully signed in with Google",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      navigate("/home");
+        if (userResponse.data && userResponse.data.phoneNumber) {
+          // User exists and has phone number, proceed to home
+          toast({
+            title: "Success",
+            description: "Successfully signed in with Google",
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+          });
+          navigate("/home");
+        } else {
+          // User exists but no phone number
+          setShowPhoneModal(true);
+        }
+      } catch (error) {
+        if (error.response?.status === 404) {
+          // New user, show phone modal
+          setShowPhoneModal(true);
+        } else {
+          // Some other error occurred
+          throw error;
+        }
+      }
     } catch (error) {
-      console.error("Sign-in error:", error);
+      console.error("Full sign-in error:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to sign in",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -83,6 +107,13 @@ export default function Login() {
           </Button>
         </VStack>
       </Box>
+
+      <PhonePopup
+        isOpen={showPhoneModal}
+        onClose={() => setShowPhoneModal(false)}
+        currentUser={userData}
+        onSuccess={() => navigate("/home")}
+      />
     </Container>
   );
 }

@@ -1,6 +1,7 @@
 import { ChakraProvider, CSSReset } from "@chakra-ui/react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { MapsProvider } from "./contexts/MapsContext";
 import Login from "./pages/Login";
 import HomePage from "./pages/HomePage";
 import RideRequest from "./pages/RideRequest";
@@ -13,44 +14,46 @@ function App() {
     <ChakraProvider>
       <CSSReset />
       <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/home"
-              element={
-                <PrivateRoute>
-                  <HomePage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/ride-request"
-              element={
-                <PrivateRoute>
-                  <RideRequest />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/my-rides"
-              element={
-                <PrivateRoute>
-                  <MyRides />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/rides/:rideId/details"
-              element={
-                <PrivateRoute>
-                  <MatchedRideDetails />
-                </PrivateRoute>
-              }
-            />
-          </Routes>
-        </Router>
+        <MapsProvider>
+          <Router>
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/home"
+                element={
+                  <PrivateRoute>
+                    <HomePage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/ride-request"
+                element={
+                  <PrivateRoute>
+                    <RideRequest />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/my-rides"
+                element={
+                  <PrivateRoute>
+                    <MyRides />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/rides/:rideId/details"
+                element={
+                  <PrivateRoute>
+                    <MatchedRideDetails />
+                  </PrivateRoute>
+                }
+              />
+            </Routes>
+          </Router>
+        </MapsProvider>
       </AuthProvider>
     </ChakraProvider>
   );
