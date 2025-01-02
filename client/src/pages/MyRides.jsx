@@ -124,17 +124,17 @@ const MyRides = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch rides");
+        throw new Error(
+          errorData.message ||
+            "Failed to fetch rides try signing out and signing in"
+        );
       }
 
       const data = await response.json();
       console.log("Initial rides data:", data);
       setRides(data);
     } catch (error) {
-      console.error(
-        "Error fetching rides try signing out and signing in:",
-        error
-      );
+      console.error("Error fetching rides:", error);
       setError(error.message);
     } finally {
       setLoading(false);
