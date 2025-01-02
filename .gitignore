@@ -9,9 +9,6 @@ pnpm-debug.log*
 # Dependency directories
 node_modules/
 
-# Model and Image files
-client/public/
-
 # Vite build output
 dist/
 
