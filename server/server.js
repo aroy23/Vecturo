@@ -5,7 +5,6 @@ require("dotenv").config();
 
 const userRoutes = require("./routes/users");
 const rideRoutes = require("./routes/rides");
-const { AodOutlined } = require("@mui/icons-material");
 
 const app = express();
 
