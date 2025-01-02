@@ -42,13 +42,12 @@ const RideRequest = () => {
     timeRangeEnd: "",
     passengers: 1,
   });
-  const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [timeError, setTimeError] = useState(null);
 
   const handleLocationSelect = (location, type) => {
-    console.log('Location selected:', location);
+    console.log("Location selected:", location);
     setFormData((prev) => {
       const newData = {
         ...prev,
@@ -56,14 +55,14 @@ const RideRequest = () => {
         [`${type}Display`]: location.displayText,
         [`${type}Address`]: location.description,
         [`${type}PlaceID`]: location.place_id,
-        ...(type === 'pickup' && {
+        ...(type === "pickup" && {
           pickupLat: location.lat,
           pickupLong: location.lng,
         }),
-        ...(type === 'destination' && {
+        ...(type === "destination" && {
           destinationLat: location.lat,
           destinationLong: location.lng,
-        })
+        }),
       };
       console.log(`Updated form data for ${type}:`, newData);
       return newData;
@@ -77,23 +76,23 @@ const RideRequest = () => {
       [`${type}Display`]: value,
       [`${type}Address`]: value,
       [`${type}PlaceID`]: "",
-      ...(type === 'pickup' && {
-        pickupLat: '',
-        pickupLong: '',
+      ...(type === "pickup" && {
+        pickupLat: "",
+        pickupLong: "",
       }),
-      ...(type === 'destination' && {
-        destinationLat: '',
-        destinationLong: '',
-      })
+      ...(type === "destination" && {
+        destinationLat: "",
+        destinationLong: "",
+      }),
     }));
   };
 
   const validateTimeWindow = (start, end) => {
     if (!start || !end) return true;
 
-    const [startHour, startMinute] = start.split(':').map(Number);
-    const [endHour, endMinute] = end.split(':').map(Number);
-    
+    const [startHour, startMinute] = start.split(":").map(Number);
+    const [endHour, endMinute] = end.split(":").map(Number);
+
     // Convert to minutes for easier comparison
     const startMinutes = startHour * 60 + startMinute;
     const endMinutes = endHour * 60 + endMinute;
@@ -116,21 +115,21 @@ const RideRequest = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === 'date') {
+
+    if (name === "date") {
       // Store the date as is, without timezone adjustment
-      setFormData(prev => ({ ...prev, [name]: value }));
-    } else if (name === 'timeRangeStart' || name === 'timeRangeEnd') {
-      setFormData(prev => {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    } else if (name === "timeRangeStart" || name === "timeRangeEnd") {
+      setFormData((prev) => {
         const newData = { ...prev, [name]: value };
         validateTimeWindow(
-          name === 'timeRangeStart' ? value : prev.timeRangeStart,
-          name === 'timeRangeEnd' ? value : prev.timeRangeEnd
+          name === "timeRangeStart" ? value : prev.timeRangeStart,
+          name === "timeRangeEnd" ? value : prev.timeRangeEnd
         );
         return newData;
       });
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -149,15 +148,24 @@ const RideRequest = () => {
       const token = localStorage.getItem("authToken");
       if (!token) throw new Error("Please log in to create a ride");
 
-      if (!formData.pickupLat || !formData.pickupLong || !formData.pickupPlaceID || !formData.destinationPlaceID) {
-        throw new Error("Please select valid pickup and destination locations from the dropdown");
+      if (
+        !formData.pickupLat ||
+        !formData.pickupLong ||
+        !formData.pickupPlaceID ||
+        !formData.destinationPlaceID
+      ) {
+        throw new Error(
+          "Please select valid pickup and destination locations from the dropdown"
+        );
       }
 
       const pickupLat = parseFloat(formData.pickupLat);
       const pickupLong = parseFloat(formData.pickupLong);
 
       if (isNaN(pickupLat) || isNaN(pickupLong)) {
-        throw new Error("Invalid coordinates. Please select the location again.");
+        throw new Error(
+          "Invalid coordinates. Please select the location again."
+        );
       }
 
       const requestData = {
@@ -177,16 +185,19 @@ const RideRequest = () => {
         passengers: parseInt(formData.passengers),
       };
 
-      console.log('Submitting ride request with data:', requestData);
+      console.log("Submitting ride request with data:", requestData);
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/rides`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestData),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/rides`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(requestData),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -195,9 +206,8 @@ const RideRequest = () => {
 
       const newRide = await response.json();
       
-      localStorage.setItem("lastCreatedRideId", newRide._id);
-      
-      navigate("/my-rides");
+      // Navigate directly to ride details
+      navigate(`/rides/${newRide._id}/details`);
       
     } catch (error) {
       console.error("Error creating ride:", error);
@@ -248,7 +258,9 @@ const RideRequest = () => {
                 label="Pickup Location"
                 value={formData.pickupDisplay || formData.pickup}
                 onChange={(value) => handleLocationChange(value, "pickup")}
-                onSelect={(location) => handleLocationSelect(location, "pickup")}
+                onSelect={(location) =>
+                  handleLocationSelect(location, "pickup")
+                }
               />
             </motion.div>
 
@@ -257,7 +269,9 @@ const RideRequest = () => {
                 label="Destination"
                 value={formData.destinationDisplay || formData.destination}
                 onChange={(value) => handleLocationChange(value, "destination")}
-                onSelect={(location) => handleLocationSelect(location, "destination")}
+                onSelect={(location) =>
+                  handleLocationSelect(location, "destination")
+                }
               />
             </motion.div>
 
@@ -276,7 +290,7 @@ const RideRequest = () => {
                   name="date"
                   value={formData.date}
                   onChange={handleChange}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={new Date().toISOString().split("T")[0]}
                   className="input pl-10"
                   required
                 />
@@ -351,11 +365,19 @@ const RideRequest = () => {
             <motion.div variants={fadeIn} className="text-center">
               <Button
                 type="submit"
-                disabled={loading || timeError || !formData.timeRangeStart || !formData.timeRangeEnd}
+                disabled={
+                  loading ||
+                  timeError ||
+                  !formData.timeRangeStart ||
+                  !formData.timeRangeEnd
+                }
                 className={`w-full md:w-auto ${
-                  (loading || timeError || !formData.timeRangeStart || !formData.timeRangeEnd)
-                    ? 'opacity-50 cursor-not-allowed'
-                    : ''
+                  loading ||
+                  timeError ||
+                  !formData.timeRangeStart ||
+                  !formData.timeRangeEnd
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
                 }`}
               >
                 {loading ? (
@@ -364,7 +386,7 @@ const RideRequest = () => {
                     Creating...
                   </div>
                 ) : (
-                  'Create Ride'
+                  "Create Ride"
                 )}
               </Button>
             </motion.div>
@@ -383,50 +405,9 @@ const RideRequest = () => {
           {error && (
             <motion.div
               variants={fadeIn}
-              className="mt-8 p-4 bg-red-50 border border-red-100 rounded-lg max-w-3xl mx-auto"
+              className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg"
             >
-              <p className="text-red-700 text-center">{error}</p>
-            </motion.div>
-          )}
-
-          {!loading && matches.length > 0 && (
-            <motion.div
-              variants={fadeIn}
-              className="mt-8 max-w-3xl mx-auto"
-            >
-              <h2 className="text-2xl font-bold mb-4 text-center">Potential Matches</h2>
-              <div className="space-y-4">
-                {matches.map((match) => (
-                  <div
-                    key={match._id}
-                    className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-lg">Pickup: {match.pickup}</h3>
-                        <p className="text-gray-600">Destination: {match.destination}</p>
-                        <p className="text-gray-600">
-                          Time: {match.timeRangeStart} - {match.timeRangeEnd}
-                        </p>
-                        <p className="text-gray-600">
-                          Passengers: {match.passengers}
-                        </p>
-                        <p className="text-gray-600">
-                          Date: {match.date}
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => {
-                          console.log("Match selected:", match._id);
-                        }}
-                        className="bg-green-500 hover:bg-green-600"
-                      >
-                        Select Match
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {error}
             </motion.div>
           )}
         </motion.div>

@@ -30,9 +30,9 @@ const createRide = async (req, res) => {
     const destinationLongNum = Number(destinationLong);
 
     if (
-      isNaN(pickupLatNum) || 
-      isNaN(pickupLongNum) || 
-      isNaN(destinationLatNum) || 
+      isNaN(pickupLatNum) ||
+      isNaN(pickupLongNum) ||
+      isNaN(destinationLatNum) ||
       isNaN(destinationLongNum)
     ) {
       return res.status(400).json({ message: "Invalid coordinates provided" });
@@ -68,7 +68,9 @@ const createRide = async (req, res) => {
     res.status(201).json(savedRide);
   } catch (error) {
     console.error("Error creating ride:", error);
-    res.status(500).json({ message: "Error creating ride", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error creating ride", error: error.message });
   }
 };
 
@@ -78,16 +80,16 @@ const findMatches = async (req, res) => {
 
   try {
     // Get the ride requesting matches
-    const ride = await Ride.findOne({ 
+    const ride = await Ride.findOne({
       _id: req.params.rideId,
-      isMatched: false // Only proceed if ride isn't already matched
+      isMatched: false, // Only proceed if ride isn't already matched
     }).session(session);
 
     if (!ride) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({ 
-        message: ride ? "Ride is already matched" : "Ride not found" 
+      return res.status(404).json({
+        message: ride ? "Ride is already matched" : "Ride not found",
       });
     }
 
@@ -105,18 +107,18 @@ const findMatches = async (req, res) => {
     const rideStart = convertTimeToMinutes(ride.timeRangeStart);
     const rideEnd = convertTimeToMinutes(ride.timeRangeEnd);
 
-    // First, find rides with matching pickup locations
+    // Find rides with matching pickup locations using basic geospatial query
     const nearbyPickups = await Ride.find({
       isMatched: false,
       _id: { $ne: ride._id },
       userId: { $ne: ride.userId },
       date: ride.date,
       pickupLocation: {
-        $near: {
+        $nearSphere: {
           $geometry: ride.pickupLocation,
-          $maxDistance: 804.672, // 0.5 miles in meters
-        },
-      },
+          $maxDistance: 804.672 // 0.5 miles in meters
+        }
+      }
     })
     .sort({ createdAt: 1 })
     .session(session);
@@ -128,7 +130,7 @@ const findMatches = async (req, res) => {
     }
 
     // Calculate distances to destination for each nearby pickup
-    const potentialMatches = nearbyPickups.map(match => {
+    const potentialMatches = nearbyPickups.map((match) => {
       const distance = calculateDistance(
         match.destinationLocation.coordinates[1],
         match.destinationLocation.coordinates[0],
@@ -139,7 +141,9 @@ const findMatches = async (req, res) => {
     });
 
     // Filter matches within 0.2 miles of destination
-    const destinationMatches = potentialMatches.filter(({ distance }) => distance <= 0.2);
+    const destinationMatches = potentialMatches.filter(
+      ({ distance }) => distance <= 0.2
+    );
 
     if (destinationMatches.length === 0) {
       await session.abortTransaction();
@@ -153,12 +157,7 @@ const findMatches = async (req, res) => {
       const matchStart = convertTimeToMinutes(match.timeRangeStart);
       const matchEnd = convertTimeToMinutes(match.timeRangeEnd);
 
-      const overlap = getTimeOverlap(
-        rideStart,
-        rideEnd,
-        matchStart,
-        matchEnd
-      );
+      const overlap = getTimeOverlap(rideStart, rideEnd, matchStart, matchEnd);
 
       if (overlap) {
         finalMatch = { match, overlap };
@@ -172,13 +171,101 @@ const findMatches = async (req, res) => {
       return res.status(200).json([]);
     }
 
-    // Update both rides atomically
+    // Calculate distances from both pickup points to determine starting point
+    const ridePickupToMatchPickup = calculateDistance(
+      ride.pickupLocation.coordinates[1],
+      ride.pickupLocation.coordinates[0],
+      finalMatch.match.pickupLocation.coordinates[1],
+      finalMatch.match.pickupLocation.coordinates[0]
+    );
+
+    const matchPickupToRidePickup = calculateDistance(
+      finalMatch.match.pickupLocation.coordinates[1],
+      finalMatch.match.pickupLocation.coordinates[0],
+      ride.pickupLocation.coordinates[1],
+      ride.pickupLocation.coordinates[0]
+    );
+
+    // Determine which pickup point should be the starting point (shorter distance)
+    const useRidePickupAsStart = ridePickupToMatchPickup <= matchPickupToRidePickup;
+
+    const startingPoint = useRidePickupAsStart ? {
+      name: ride.pickup,
+      address: ride.pickupAddress,
+      placeID: ride.pickupPlaceID,
+      location: {
+        type: 'Point',
+        coordinates: ride.pickupLocation.coordinates
+      }
+    } : {
+      name: finalMatch.match.pickup,
+      address: finalMatch.match.pickupAddress,
+      placeID: finalMatch.match.pickupPlaceID,
+      location: {
+        type: 'Point',
+        coordinates: finalMatch.match.pickupLocation.coordinates
+      }
+    };
+
+    // Calculate distances from starting point to both destinations
+    const distanceToRideDestination = calculateDistance(
+      startingPoint.location.coordinates[1],
+      startingPoint.location.coordinates[0],
+      ride.destinationLocation.coordinates[1],
+      ride.destinationLocation.coordinates[0]
+    );
+
+    const distanceToMatchDestination = calculateDistance(
+      startingPoint.location.coordinates[1],
+      startingPoint.location.coordinates[0],
+      finalMatch.match.destinationLocation.coordinates[1],
+      finalMatch.match.destinationLocation.coordinates[0]
+    );
+
+    // Choose the closer destination as the ending point
+    const useRideDestinationAsEnd = distanceToRideDestination <= distanceToMatchDestination;
+
+    const endingPoint = useRideDestinationAsEnd ? {
+      name: ride.destination,
+      address: ride.destinationAddress,
+      placeID: ride.destinationPlaceID,
+      location: {
+        type: 'Point',
+        coordinates: ride.destinationLocation.coordinates
+      }
+    } : {
+      name: finalMatch.match.destination,
+      address: finalMatch.match.destinationAddress,
+      placeID: finalMatch.match.destinationPlaceID,
+      location: {
+        type: 'Point',
+        coordinates: finalMatch.match.destinationLocation.coordinates
+      }
+    };
+
+    // Update both rides atomically with the starting point, ending point and match info
     ride.isMatched = true;
     ride.matchedRideId = finalMatch.match._id;
+    ride.startingPoint = startingPoint.name;
+    ride.startingPointAddress = startingPoint.address;
+    ride.startingPointPlaceID = startingPoint.placeID;
+    ride.startingPointLocation = startingPoint.location;
+    ride.endingPoint = endingPoint.name;
+    ride.endingPointAddress = endingPoint.address;
+    ride.endingPointPlaceID = endingPoint.placeID;
+    ride.endingPointLocation = endingPoint.location;
     await ride.save({ session });
 
     finalMatch.match.isMatched = true;
     finalMatch.match.matchedRideId = ride._id;
+    finalMatch.match.startingPoint = startingPoint.name;
+    finalMatch.match.startingPointAddress = startingPoint.address;
+    finalMatch.match.startingPointPlaceID = startingPoint.placeID;
+    finalMatch.match.startingPointLocation = startingPoint.location;
+    finalMatch.match.endingPoint = endingPoint.name;
+    finalMatch.match.endingPointAddress = endingPoint.address;
+    finalMatch.match.endingPointPlaceID = endingPoint.placeID;
+    finalMatch.match.endingPointLocation = endingPoint.location;
     await finalMatch.match.save({ session });
 
     // Commit the transaction
@@ -186,15 +273,19 @@ const findMatches = async (req, res) => {
     session.endSession();
 
     // Return the match with overlap information
-    res.status(200).json([{
-      ...finalMatch.match.toObject(),
-      overlap: finalMatch.overlap
-    }]);
+    res.status(200).json([
+      {
+        ...finalMatch.match.toObject(),
+        overlap: finalMatch.overlap,
+      },
+    ]);
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
     console.error("Error finding matches:", error);
-    res.status(500).json({ message: "Error finding matches", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error finding matches", error: error.message });
   }
 };
 
@@ -202,43 +293,51 @@ const getUserRides = async (req, res) => {
   try {
     const rides = await Ride.find({ userId: req.user.uid })
       .sort({ createdAt: -1 })
-      .populate('matchedRideId', 'userId pickup destination timeRangeStart timeRangeEnd');
+      .populate(
+        "matchedRideId",
+        "userId pickup destination timeRangeStart timeRangeEnd"
+      );
     res.json(rides);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching rides", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching rides", error: error.message });
   }
 };
 
 const getRide = async (req, res) => {
   try {
-    const ride = await Ride.findOne({ _id: req.params.rideId })
-      .populate('matchedRideId', 'userId pickup pickupAddress destination destinationAddress timeRangeStart timeRangeEnd date passengers');
+    const { rideId } = req.params;  // Changed from id to rideId to match route parameter
+    
+    // Validate if rideId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(rideId)) {
+      return res.status(400).json({ error: "Invalid ride ID format" });
+    }
+
+    const ride = await Ride.findById(rideId);
     
     if (!ride) {
-      return res.status(404).json({ message: "Ride not found" });
+      return res.status(404).json({ error: "Ride not found" });
     }
 
-    // Only allow users to view their own rides or rides they're matched with
-    if (ride.userId !== req.user.uid && (!ride.matchedRideId || ride.matchedRideId.userId !== req.user.uid)) {
-      return res.status(403).json({ message: "Not authorized to view this ride" });
-    }
-
-    res.json(ride);
+    res.status(200).json(ride);
   } catch (error) {
     console.error("Error fetching ride:", error);
-    res.status(500).json({ message: "Error fetching ride", error: error.message });
+    res.status(500).json({ error: "Failed to fetch ride details" });
   }
 };
 
 // Helper function to calculate distance between two points in miles
 function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 3959; // Earth's radius in miles
+  const R = 3963; // Earth's radius in miles
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -260,9 +359,14 @@ function getTimeOverlap(start1, end1, start2, end2) {
 
   if (overlapStart < overlapEnd) {
     return {
-      start: `${Math.floor(overlapStart / 60)}:${String(overlapStart % 60).padStart(2, '0')}`,
-      end: `${Math.floor(overlapEnd / 60)}:${String(overlapEnd % 60).padStart(2, '0')}`,
-      duration: overlapEnd - overlapStart
+      start: `${Math.floor(overlapStart / 60)}:${String(
+        overlapStart % 60
+      ).padStart(2, "0")}`,
+      end: `${Math.floor(overlapEnd / 60)}:${String(overlapEnd % 60).padStart(
+        2,
+        "0"
+      )}`,
+      duration: overlapEnd - overlapStart,
     };
   }
   return null;

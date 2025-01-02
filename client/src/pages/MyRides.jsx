@@ -57,19 +57,6 @@ const MyRides = () => {
     fetchRides();
   }, []);
 
-  useEffect(() => {
-    // Check for lastCreatedRideId when rides are loaded
-    const lastCreatedRideId = localStorage.getItem("lastCreatedRideId");
-    if (lastCreatedRideId && rides.length > 0) {
-      const newRide = rides.find((ride) => ride._id === lastCreatedRideId);
-      if (newRide) {
-        handleFindMatches(newRide);
-        // Clear the stored ID after using it
-        localStorage.removeItem("lastCreatedRideId");
-      }
-    }
-  }, [rides]);
-
   const fetchRides = async () => {
     try {
       const token = localStorage.getItem("authToken");

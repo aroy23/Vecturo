@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const pointSchema = {
+const pointSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: ['Point'],
@@ -10,7 +10,19 @@ const pointSchema = {
     type: [Number],
     required: true
   }
-};
+}, { _id: false });
+
+const optionalPointSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ['Point'],
+    required: false
+  },
+  coordinates: {
+    type: [Number],
+    required: false
+  }
+}, { _id: false });
 
 const rideSchema = new mongoose.Schema({
   userId: {
@@ -62,7 +74,6 @@ const rideSchema = new mongoose.Schema({
   isMatched: {
     type: Boolean,
     default: false,
-    index: true  // Add single field index for quick filtering
   },
   matchedRideId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -72,18 +83,40 @@ const rideSchema = new mongoose.Schema({
   matchRequestedAt: {
     type: Date,
     default: null
-  }
+  },
+  startingPoint: {
+    type: String,
+    default: null
+  },
+  startingPointAddress: {
+    type: String,
+    default: null
+  },
+  startingPointPlaceID: {
+    type: String,
+    default: null
+  },
+  startingPointLocation: optionalPointSchema,
+  endingPoint: {
+    type: String,
+    default: null
+  },
+  endingPointAddress: {
+    type: String,
+    default: null
+  },
+  endingPointPlaceID: {
+    type: String,
+    default: null
+  },
+  endingPointLocation: optionalPointSchema
 }, {
   timestamps: true
 });
 
-// Create indexes for location-based queries
-rideSchema.index({ pickupLocation: "2dsphere" });
-rideSchema.index({ destinationLocation: "2dsphere" });
+// Create simple 2dsphere index for pickupLocation
+rideSchema.index({ pickupLocation: '2dsphere' });
 
-// Create compound indexes for efficient querying
-rideSchema.index({ isMatched: 1, date: 1 }); // For filtering unmatched rides by date
-rideSchema.index({ isMatched: 1, createdAt: 1 }); // For sorting by creation time
-rideSchema.index({ userId: 1, isMatched: 1 }); // For finding user's rides
+const Ride = mongoose.model("Ride", rideSchema);
 
-module.exports = mongoose.model("Ride", rideSchema);
+module.exports = Ride;
