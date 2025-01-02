@@ -36,38 +36,39 @@ export default function Login() {
 
       // Store the token
       localStorage.setItem("authToken", idToken);
-
-      // Store user data temporarily
-      const userDataObj = {
-        uid: result.user.uid,
-        email: result.user.email,
-        displayName: result.user.displayName,
-      };
-      console.log("User data:", userDataObj);
       setUserData(result.user);
 
-      // Check if user exists and has phone number
-      const userResponse = await axios.get(`/api/users/${result.user.uid}`, {
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-
-      if (userResponse.data && userResponse.data.phoneNumber) {
-        // User exists and has phone number, proceed to home
-        toast({
-          title: "Success",
-          description: "Successfully signed in with Google",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
+      try {
+        // Try to get user data
+        const userResponse = await axios.get(`/api/users/${result.user.uid}`, {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
         });
-        navigate("/home");
-      } else {
-        // Show phone number modal
-        setShowPhoneModal(true);
+
+        if (userResponse.data && userResponse.data.phoneNumber) {
+          // User exists and has phone number, proceed to home
+          toast({
+            title: "Success",
+            description: "Successfully signed in with Google",
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+          });
+          navigate("/home");
+        } else {
+          // User exists but no phone number
+          setShowPhoneModal(true);
+        }
+      } catch (error) {
+        if (error.response?.status === 404) {
+          // New user, show phone modal
+          setShowPhoneModal(true);
+        } else {
+          // Some other error occurred
+          throw error;
+        }
       }
-      setLoading(false);
     } catch (error) {
       console.error("Full sign-in error:", error);
       toast({
@@ -77,6 +78,7 @@ export default function Login() {
         duration: 5000,
         isClosable: true,
       });
+    } finally {
       setLoading(false);
     }
   };
