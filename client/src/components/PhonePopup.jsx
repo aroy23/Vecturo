@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -19,7 +19,30 @@ import axios from "axios";
 const PhonePopup = ({ isOpen, onClose, currentUser, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [currentPhone, setCurrentPhone] = useState("");
   const toast = useToast();
+
+  // Fetch current phone number when modal opens
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (isOpen && currentUser) {
+        try {
+          const response = await axios.get(`/api/users/${currentUser.uid}`, {
+            headers: {
+              Authorization: `Bearer ${await currentUser.getIdToken()}`,
+            },
+          });
+          if (response.data.phoneNumber) {
+            setPhoneNumber(response.data.phoneNumber);
+            setCurrentPhone(response.data.phoneNumber);
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      }
+    };
+    fetchUserData();
+  }, [isOpen, currentUser]);
 
   const formatPhoneNumber = (value) => {
     // Remove all non-digits
@@ -104,8 +127,14 @@ const PhonePopup = ({ isOpen, onClose, currentUser, onSuccess }) => {
       <ModalContent>
         <ModalHeader>Update Phone Number</ModalHeader>
         <ModalBody>
+          {currentPhone && (
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="text-sm text-gray-600">Current Phone Number</div>
+              <div className="text-lg font-semibold text-gray-800">{currentPhone}</div>
+            </div>
+          )}
           <FormControl isRequired>
-            <FormLabel>Phone Number</FormLabel>
+            <FormLabel>New Phone Number</FormLabel>
             <InputGroup>
               <InputLeftAddon children="+1" />
               <Input

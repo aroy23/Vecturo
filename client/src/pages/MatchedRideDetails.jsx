@@ -495,7 +495,7 @@ const MatchedRideDetails = () => {
                   </div>
                   <div className="flex items-center text-gray-600">
                     <FiUsers className="mr-2" />
-                    <span>{ride.passengers} passenger(s)</span>
+                    <span>{ride.totalPassengers} Total Passengers</span>
                   </div>
                 </div>
               </div>
@@ -511,37 +511,90 @@ const MatchedRideDetails = () => {
                       <div className="text-sm text-gray-700">
                         <div className="flex items-center mb-2">
                           <FaWalking className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
-                          <span>
-                            Please Arrive at the Meeting Point{" "}
-                            <span className="font-semibold">5-10</span> minutes
-                            Before{" "}
-                            <span className="font-semibold">
-                              {minutesToTime(overlapStart)}
+                          {ride.bookerUid === localStorage.getItem("userId") ? (
+                            <span>
+                              Please arrive at the Meeting Point{" "}
+                              <span className="font-semibold">
+                                5-10 minutes before
+                              </span>{" "}
+                              <span className="font-semibold">
+                                {minutesToTime(overlapStart)}
+                              </span>{" "}
+                              and
+                              <br />
+                              <span className="font-semibold">
+                                Book the Rideshare
+                              </span>{" "}
+                              to{" "}
+                              <span className="font-semibold">
+                                {ride.endingPointAddress}
+                              </span>{" "}
+                              using Uber/Lyft
                             </span>
-                          </span>
+                          ) : (
+                            <span>
+                              Please arrive at the Meeting Point{" "}
+                              <span className="font-semibold">
+                                5-10 minutes before
+                              </span>{" "}
+                              <span className="font-semibold">
+                                {minutesToTime(overlapStart)}
+                              </span>
+                              <br />
+                              You Do Not Need to Book the Ride, Your Ride
+                              Partner's Contact Is{" "}
+                              <span className="font-semibold">
+                                {ride.matchedUserPhone}
+                              </span>
+                            </span>
+                          )}
                         </div>
 
-                        {/* Starting Point */}
-                        <div className="flex items-start mt-4">
-                          <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
-                          <div>
-                            <h3 className="text-sm font-medium text-gray-800">
-                              {ride.pickupAddress}
-                            </h3>
-                            <p className="text-xs text-gray-500">Point A</p>
+                        {ride.startingPointPlaceID === ride.pickupPlaceID ? (
+                          // If starting point is same as pickup point, show single address
+                          <div className="flex items-start mt-4">
+                            <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
+                            <div>
+                              <span className="text-sm text-gray-800">
+                                <span className="font-semibold">
+                                  Meeting Point:
+                                </span>{" "}
+                                {ride.pickupAddress}
+                              </span>
+                              <div className="text-sm text-gray-800 mt-2">
+                                <span className="font-semibold">
+                                  Your Ride Partner's Contact Is:{" "}
+                                </span>{" "}
+                                {ride.matchedUserPhone}
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          // If different locations, show both points
+                          <>
+                            {/* Starting Point */}
+                            <div className="flex items-start mt-4">
+                              <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
+                              <div>
+                                <span className="text-sm text-gray-800">
+                                  {ride.pickupAddress}
+                                </span>
+                                <p className="text-xs text-gray-500">Point A</p>
+                              </div>
+                            </div>
 
-                        {/* Meeting Point */}
-                        <div className="flex items-start mt-2">
-                          <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
-                          <div>
-                            <h3 className="text-sm font-medium text-gray-800">
-                              {ride.startingPointAddress}
-                            </h3>
-                            <p className="text-xs text-gray-500">Point B</p>
-                          </div>
-                        </div>
+                            {/* Meeting Point */}
+                            <div className="flex items-start mt-2">
+                              <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
+                              <div>
+                                <span className="text-sm text-gray-800">
+                                  {ride.startingPointAddress}
+                                </span>
+                                <p className="text-xs text-gray-500">Point B</p>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                       {ride.startingPointPlaceID !== ride.pickupPlaceID && (
                         <div className="mt-4 rounded-lg overflow-hidden">
@@ -592,9 +645,9 @@ const MatchedRideDetails = () => {
                       <div className="flex items-start">
                         <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
                         <div>
-                          <h3 className="text-sm font-medium text-gray-800">
+                          <span className="text-sm text-gray-800">
                             {ride.startingPointAddress}
-                          </h3>
+                          </span>
                           <p className="text-xs text-gray-500">Point A</p>
                         </div>
                       </div>
@@ -603,9 +656,9 @@ const MatchedRideDetails = () => {
                       <div className="flex items-start">
                         <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
                         <div>
-                          <h3 className="text-sm font-medium text-gray-800">
+                          <span className="text-sm text-gray-800">
                             {ride.endingPointAddress}
-                          </h3>
+                          </span>
                           <p className="text-xs text-gray-500">Point B</p>
                         </div>
                       </div>
@@ -647,7 +700,7 @@ const MatchedRideDetails = () => {
                       <div className="flex items-start">
                         <FaWalking className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
                         <div>
-                          <h3 className="text-sm font-medium text-gray-800">
+                          <h3 className="text-sm text-gray-800">
                             Get to Your Destination
                           </h3>
                           {ride.destinationPlaceID ===
@@ -671,9 +724,9 @@ const MatchedRideDetails = () => {
                           <div className="flex items-start">
                             <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
                             <div>
-                              <h3 className="text-sm font-medium text-gray-800">
+                              <span className="text-sm text-gray-800">
                                 {ride.endingPointAddress}
-                              </h3>
+                              </span>
                               <p className="text-xs text-gray-500">Point A</p>
                             </div>
                           </div>
@@ -681,9 +734,9 @@ const MatchedRideDetails = () => {
                           <div className="flex items-start">
                             <FiMapPin className="mt-0.5 mr-2 text-blue-600 flex-shrink-0" />
                             <div>
-                              <h3 className="text-sm font-medium text-gray-800">
+                              <span className="text-sm text-gray-800">
                                 {ride.destinationAddress}
-                              </h3>
+                              </span>
                               <p className="text-xs text-gray-500">Point B</p>
                             </div>
                           </div>

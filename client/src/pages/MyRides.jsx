@@ -167,7 +167,7 @@ const MyRides = () => {
             variants={fadeIn}
             className="text-center text-gray-600 mb-12 max-w-2xl mx-auto"
           >
-            View Your Ride Requests
+            View Your Ride Requests and Ride Matches
           </motion.p>
 
           {error && (
@@ -227,7 +227,13 @@ const MyRides = () => {
                       </div>
                       <div className="flex items-center text-gray-600">
                         <FiUsers className="mr-2" />
-                        <span>{ride.passengers} Passenger(s)</span>
+                        <span>
+                          {ride.isMatched
+                            ? `${ride.totalPassengers} Total Passengers`
+                            : `${ride.passengers} Passenger${
+                                ride.passengers > 1 ? 's' : ''
+                              }`}
+                        </span>
                       </div>
                     </div>
                     {!ride.isMatched && (

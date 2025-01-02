@@ -29,6 +29,27 @@ const rideSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  bookerUid: {
+    type: String,
+    default: null,
+  },
+  userPhone: {
+    type: String,
+    required: true,
+  },
+  matchedUserPhone: {
+    type: String,
+    default: null,
+  },
+  passengers: {
+    type: Number,
+    required: true,
+    min: 1
+  },
+  totalPassengers: {
+    type: Number,
+    default: null,
+  },
   pickup: {
     type: String,
     required: true,
@@ -65,10 +86,6 @@ const rideSchema = new mongoose.Schema({
   },
   timeRangeEnd: {
     type: String,
-    required: true,
-  },
-  passengers: {
-    type: Number,
     required: true,
   },
   isMatched: {

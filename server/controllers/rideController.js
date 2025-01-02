@@ -6,6 +6,7 @@ const createRide = async (req, res) => {
     console.log("Creating ride for user:", req.user.uid);
     console.log("Request body:", req.body);
 
+    const userId = req.user.uid;
     const {
       pickup,
       pickupAddress,
@@ -23,6 +24,12 @@ const createRide = async (req, res) => {
       passengers,
     } = req.body;
 
+    // Get user's phone number
+    const user = await mongoose.model('User').findOne({ uid: userId });
+    if (!user || !user.phoneNumber) {
+      return res.status(400).json({ error: "User phone number not found" });
+    }
+
     // Convert coordinates to numbers and validate
     const pickupLatNum = Number(pickupLat);
     const pickupLongNum = Number(pickupLong);
@@ -39,7 +46,9 @@ const createRide = async (req, res) => {
     }
 
     const newRide = new Ride({
-      userId: req.user.uid,
+      userId,
+      userPhone: user.phoneNumber,
+      passengers,
       pickup,
       pickupAddress,
       pickupPlaceID,
@@ -57,7 +66,6 @@ const createRide = async (req, res) => {
       date,
       timeRangeStart,
       timeRangeEnd,
-      passengers,
       isMatched: false,
       matchedRideId: null,
       matchRequestedAt: null,
@@ -188,25 +196,17 @@ const findMatches = async (req, res) => {
       return res.status(200).json([]);
     }
 
-    // Calculate distances from both pickup points to determine starting point
-    const ridePickupToMatchPickup = calculateDistance(
-      ride.pickupLocation.coordinates[1],
-      ride.pickupLocation.coordinates[0],
-      finalMatch.match.pickupLocation.coordinates[1],
-      finalMatch.match.pickupLocation.coordinates[0]
-    );
+    let startingPoint;
+    let endingPoint;
+    let bookerUid;
 
-    const matchPickupToRidePickup = calculateDistance(
-      finalMatch.match.pickupLocation.coordinates[1],
-      finalMatch.match.pickupLocation.coordinates[0],
-      ride.pickupLocation.coordinates[1],
-      ride.pickupLocation.coordinates[0]
-    );
+    // Randomly choose who walks (50-50 chance)
+    const useRidePickupAsStart = Math.random() < 0.5;
+    // The person who doesn't walk (whose pickup point is used) becomes the booker
+    bookerUid = useRidePickupAsStart ? ride.userId : finalMatch.match.userId;
 
-    // Determine which pickup point should be the starting point (shorter distance)
-    const useRidePickupAsStart = ridePickupToMatchPickup <= matchPickupToRidePickup;
-
-    const startingPoint = useRidePickupAsStart ? {
+    // Set the starting point (meetup location)
+    startingPoint = useRidePickupAsStart ? {
       name: ride.pickup,
       address: ride.pickupAddress,
       placeID: ride.pickupPlaceID,
@@ -239,10 +239,11 @@ const findMatches = async (req, res) => {
       finalMatch.match.destinationLocation.coordinates[0]
     );
 
-    // Choose the closer destination as the ending point
+    // Choose the drop-off point that's closer to the starting point
     const useRideDestinationAsEnd = distanceToRideDestination <= distanceToMatchDestination;
 
-    const endingPoint = useRideDestinationAsEnd ? {
+    // Set the ending point (drop-off location)
+    endingPoint = useRideDestinationAsEnd ? {
       name: ride.destination,
       address: ride.destinationAddress,
       placeID: ride.destinationPlaceID,
@@ -271,7 +272,9 @@ const findMatches = async (req, res) => {
     ride.endingPointAddress = endingPoint.address;
     ride.endingPointPlaceID = endingPoint.placeID;
     ride.endingPointLocation = endingPoint.location;
-    await ride.save({ session });
+    ride.bookerUid = bookerUid;
+    ride.matchedUserPhone = finalMatch.match.userPhone;
+    ride.totalPassengers = ride.passengers + finalMatch.match.passengers;
 
     finalMatch.match.isMatched = true;
     finalMatch.match.matchedRideId = ride._id;
@@ -283,6 +286,11 @@ const findMatches = async (req, res) => {
     finalMatch.match.endingPointAddress = endingPoint.address;
     finalMatch.match.endingPointPlaceID = endingPoint.placeID;
     finalMatch.match.endingPointLocation = endingPoint.location;
+    finalMatch.match.bookerUid = bookerUid;
+    finalMatch.match.matchedUserPhone = ride.userPhone;
+    finalMatch.match.totalPassengers = ride.passengers + finalMatch.match.passengers;
+
+    await ride.save({ session });
     await finalMatch.match.save({ session });
 
     // Commit the transaction

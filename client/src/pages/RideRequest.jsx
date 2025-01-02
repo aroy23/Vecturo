@@ -119,27 +119,36 @@ const RideRequest = () => {
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 3959; // Radius of the Earth in miles
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c; // Distance in miles
   };
 
   const validateDistance = () => {
-    if (formData.pickupLat && formData.pickupLong && formData.destinationLat && formData.destinationLong) {
+    if (
+      formData.pickupLat &&
+      formData.pickupLong &&
+      formData.destinationLat &&
+      formData.destinationLong
+    ) {
       const distance = calculateDistance(
         parseFloat(formData.pickupLat),
         parseFloat(formData.pickupLong),
         parseFloat(formData.destinationLat),
         parseFloat(formData.destinationLong)
       );
-      
+
       if (distance < 0.5) {
-        setDistanceError("Pickup and destination must be at least 0.5 miles apart");
+        setDistanceError(
+          "Pickup and destination must be at least 0.5 miles apart"
+        );
         setIsValidDistance(false);
         return;
       }
@@ -153,13 +162,18 @@ const RideRequest = () => {
 
   useEffect(() => {
     validateDistance();
-  }, [formData.pickupLat, formData.pickupLong, formData.destinationLat, formData.destinationLong]);
+  }, [
+    formData.pickupLat,
+    formData.pickupLong,
+    formData.destinationLat,
+    formData.destinationLong,
+  ]);
 
   useEffect(() => {
     if (formData.date) {
       const selectedDate = new Date(formData.date);
       const currentDate = new Date();
-      
+
       // If selected date is today, filter times based on current time
       if (selectedDate.toDateString() === currentDate.toDateString()) {
         setTimeOptions(generateTimeOptions());
@@ -191,15 +205,15 @@ const RideRequest = () => {
       if (selectedDate.toDateString() === currentDate.toDateString()) {
         const selectedStartTime = formData.timeRangeStart;
         if (selectedStartTime) {
-          const [hours, minutes] = selectedStartTime.split(':').map(Number);
+          const [hours, minutes] = selectedStartTime.split(":").map(Number);
           const selectedDateTime = new Date(selectedDate);
           selectedDateTime.setHours(hours, minutes);
-          
+
           if (selectedDateTime < currentTime) {
-            setFormData(prev => ({
+            setFormData((prev) => ({
               ...prev,
-              timeRangeStart: '',
-              timeRangeEnd: ''
+              timeRangeStart: "",
+              timeRangeEnd: "",
             }));
           }
         }
@@ -292,12 +306,12 @@ const RideRequest = () => {
       const selectedDate = new Date(value);
       const currentDate = new Date();
       currentDate.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
-      
+
       if (selectedDate < currentDate) {
         // Don't allow past dates
         return;
       }
-      
+
       // Store the date as is, without timezone adjustment
       setFormData((prev) => ({ ...prev, [name]: value }));
     } else if (name === "timeRangeStart" || name === "timeRangeEnd") {
@@ -367,14 +381,17 @@ const RideRequest = () => {
       };
 
       // Create the ride
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/rides`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestData),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/rides`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(requestData),
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
@@ -384,11 +401,14 @@ const RideRequest = () => {
       const newRide = await response.json();
 
       // Find matches for the new ride
-      const matchesResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/rides/${newRide._id}/matches`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const matchesResponse = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/rides/${newRide._id}/matches`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!matchesResponse.ok) {
         throw new Error("Failed to find matches");
@@ -398,7 +418,7 @@ const RideRequest = () => {
 
       // Always navigate to my-rides page
       navigate("/my-rides");
-      
+
       setLoading(false);
     } catch (err) {
       setError(err.message);
@@ -475,6 +495,35 @@ const RideRequest = () => {
               </div>
             </motion.div>
           )}
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-yellow-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">
+                  Important: Verify Your Contact Information
+                </h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <p>
+                    Please ensure your phone number is accurate in your profile
+                    before requesting a ride. This is crucial for ride
+                    coordination and safety.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
           <motion.form
             variants={staggerContainer}
             onSubmit={handleSubmit}
@@ -483,16 +532,15 @@ const RideRequest = () => {
             <div className="grid gap-6 md:grid-cols-2">
               {/* Location Inputs */}
               <motion.div variants={fadeIn} className="space-y-4">
-                <div className="relative">
+                <div className="relative mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Pickup Location
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-20">
                       <FiMapPin className="h-5 w-5 text-blue-500" />
                     </div>
                     <LocationAutocomplete
-                      label=""
                       value={formData.pickupDisplay || formData.pickup}
                       onChange={(value) =>
                         handleLocationChange(value, "pickup")
@@ -500,21 +548,24 @@ const RideRequest = () => {
                       onSelect={(location) =>
                         handleLocationSelect(location, "pickup")
                       }
-                      className="pl-10 w-full py-2.5 bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                     />
                   </div>
+                  {formData.pickupAddress && (
+                    <div className="mt-2 text-sm text-gray-500 pl-12">
+                      {formData.pickupAddress}
+                    </div>
+                  )}
                 </div>
 
-                <div className="relative">
+                <div className="relative mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Destination
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-20">
                       <FiMapPin className="h-5 w-5 text-blue-500" />
                     </div>
                     <LocationAutocomplete
-                      label=""
                       value={
                         formData.destinationDisplay || formData.destination
                       }
@@ -524,9 +575,13 @@ const RideRequest = () => {
                       onSelect={(location) =>
                         handleLocationSelect(location, "destination")
                       }
-                      className="pl-10 w-full py-2.5 bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                     />
                   </div>
+                  {formData.destinationAddress && (
+                    <div className="mt-2 text-sm text-gray-500 pl-12">
+                      {formData.destinationAddress}
+                    </div>
+                  )}
                 </div>
               </motion.div>
 
@@ -534,7 +589,7 @@ const RideRequest = () => {
               <motion.div variants={fadeIn} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Journey Date
+                    Date
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
@@ -581,7 +636,7 @@ const RideRequest = () => {
                               : "Start Time"}
                           </span>
                           <span className="absolute inset-y-0 right-0 flex items-center pr-2">
-                            <FiChevronDown className="h-5 w-5 text-gray-400" />
+                            <FiChevronDown className="h-5 w-5 text-blue-500" />
                           </span>
                         </Listbox.Button>
                         <Transition
@@ -636,7 +691,7 @@ const RideRequest = () => {
                               : "End Time"}
                           </span>
                           <span className="absolute inset-y-0 right-0 flex items-center pr-2">
-                            <FiChevronDown className="h-5 w-5 text-gray-400" />
+                            <FiChevronDown className="h-5 w-5 text-blue-500" />
                           </span>
                         </Listbox.Button>
                         <Transition
@@ -720,40 +775,21 @@ const RideRequest = () => {
             </motion.div>
 
             {/* Submit Button */}
-            <motion.button
+            <button
               type="submit"
-              className={`w-full px-6 py-3 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
-                isFormValid() && !loading
-                  ? "bg-blue-500 hover:bg-blue-600 active:bg-blue-700"
-                  : "bg-gray-300 cursor-not-allowed"
-              }`}
-              whileHover={{ scale: isFormValid() && !loading ? 1.02 : 1 }}
-              whileTap={{ scale: isFormValid() && !loading ? 0.98 : 1 }}
               disabled={!isFormValid() || loading}
+              className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                !isFormValid() || loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
             >
               {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Finding Matches...
-                </>
+                <div className="w-5 h-5 border-t-2 border-white rounded-full animate-spin" />
               ) : (
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Find Matches
-                </>
+                "Find Matches"
               )}
-            </motion.button>
+            </button>
           </motion.form>
         </motion.div>
       </div>

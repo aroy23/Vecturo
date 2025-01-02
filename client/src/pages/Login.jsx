@@ -36,6 +36,7 @@ export default function Login() {
 
       // Store the token
       localStorage.setItem("authToken", idToken);
+      localStorage.setItem("userId", result.user.uid);
       setUserData(result.user);
 
       try {
