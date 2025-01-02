@@ -24,7 +24,7 @@ mongoose
     try {
       const Ride = require("./models/Ride");
       await Ride.collection.createIndex({ pickupLocation: "2dsphere" });
-      console.log("Geospatial index created/verified on pickupLocation");
+      console.log("Geospatial index Verified");
     } catch (error) {
       console.error("Error creating geospatial index:", error);
     }
