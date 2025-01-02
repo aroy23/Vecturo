@@ -208,7 +208,7 @@ const MapWithDirections = ({
       map,
       suppressMarkers: false,
       polylineOptions: {
-        strokeColor: "#4299E1", // Blue color for all routes
+        strokeColor: "#4299E1",
         strokeWeight: 4,
       },
       markerOptions: {
@@ -269,7 +269,6 @@ const MapWithDirections = ({
 
         directionsRenderer.setDirections(result);
 
-        // Extract and set route information
         const route = result.routes[0];
         if (route && route.legs[0]) {
           const leg = route.legs[0];
@@ -280,7 +279,6 @@ const MapWithDirections = ({
           });
         }
 
-        // If we have user location, make sure the marker stays visible
         if (userMarker) {
           userMarker.setMap(map);
         }
@@ -366,7 +364,6 @@ const MatchedRideDetails = () => {
   useEffect(() => {
     const fetchRideDetails = async () => {
       try {
-        // Get the first ride
         const response = await axios.get(`/api/rides/${rideId}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -374,7 +371,6 @@ const MatchedRideDetails = () => {
         });
         setRide(response.data);
 
-        // If there's a matched ride, get its details
         if (response.data.matchedRideId) {
           const matchedResponse = await axios.get(
             `/api/rides/${response.data.matchedRideId}`,
@@ -780,13 +776,11 @@ const MatchedRideDetails = () => {
   );
 };
 
-// Helper function to convert time string to minutes
 const convertTimeToMinutes = (time) => {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
 };
 
-// Helper function to convert minutes to time string
 const minutesToTime = (minutes) => {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;

@@ -9,11 +9,9 @@ const { AodOutlined } = require("@mui/icons-material");
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// MongoDB connection
 mongoose
   .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
@@ -21,11 +19,11 @@ mongoose
   })
   .then(async () => {
     console.log("Connected to MongoDB");
-    
+
     // Ensure geospatial index exists
     try {
       const Ride = require("./models/Ride");
-      await Ride.collection.createIndex({ "pickupLocation": "2dsphere" });
+      await Ride.collection.createIndex({ pickupLocation: "2dsphere" });
       console.log("Geospatial index created/verified on pickupLocation");
     } catch (error) {
       console.error("Error creating geospatial index:", error);
@@ -37,7 +35,6 @@ mongoose
 app.use("/api/users", userRoutes);
 app.use("/api/rides", rideRoutes);
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: "Something went wrong!" });

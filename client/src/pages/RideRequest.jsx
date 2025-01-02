@@ -128,7 +128,7 @@ const RideRequest = () => {
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in miles
+    return R * c;
   };
 
   const validateDistance = () => {
@@ -312,7 +312,6 @@ const RideRequest = () => {
         return;
       }
 
-      // Store the date as is, without timezone adjustment
       setFormData((prev) => ({ ...prev, [name]: value }));
     } else if (name === "timeRangeStart" || name === "timeRangeEnd") {
       setFormData((prev) => {
@@ -416,7 +415,6 @@ const RideRequest = () => {
 
       const matches = await matchesResponse.json();
 
-      // Always navigate to my-rides page
       navigate("/my-rides");
 
       setLoading(false);

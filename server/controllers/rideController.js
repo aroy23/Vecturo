@@ -25,7 +25,7 @@ const createRide = async (req, res) => {
     } = req.body;
 
     // Get user's phone number
-    const user = await mongoose.model('User').findOne({ uid: userId });
+    const user = await mongoose.model("User").findOne({ uid: userId });
     if (!user || !user.phoneNumber) {
       return res.status(400).json({ error: "User phone number not found" });
     }
@@ -101,7 +101,6 @@ const findMatches = async (req, res) => {
       });
     }
 
-    // Update matchRequestedAt timestamp
     ride.matchRequestedAt = new Date();
     await ride.save({ session });
 
@@ -124,12 +123,12 @@ const findMatches = async (req, res) => {
       pickupLocation: {
         $nearSphere: {
           $geometry: ride.pickupLocation,
-          $maxDistance: 804.672 // 0.5 miles in meters
-        }
-      }
+          $maxDistance: 804.672, // 0.5 miles in meters
+        },
+      },
     })
-    .sort({ createdAt: 1 })
-    .session(session);
+      .sort({ createdAt: 1 })
+      .session(session);
 
     console.log("Nearby pickups found:", nearbyPickups.length);
 
@@ -150,17 +149,23 @@ const findMatches = async (req, res) => {
       return { match, distance };
     });
 
-    console.log("Potential matches with distances:", potentialMatches.map(m => ({
-      id: m.match._id,
-      distance: m.distance
-    })));
+    console.log(
+      "Potential matches with distances:",
+      potentialMatches.map((m) => ({
+        id: m.match._id,
+        distance: m.distance,
+      }))
+    );
 
     // Filter matches within 0.2 miles of destination
     const destinationMatches = potentialMatches.filter(
       ({ distance }) => distance <= 0.2
     );
 
-    console.log("Matches within 0.2 miles of destination:", destinationMatches.length);
+    console.log(
+      "Matches within 0.2 miles of destination:",
+      destinationMatches.length
+    );
 
     if (destinationMatches.length === 0) {
       await session.abortTransaction();
@@ -178,7 +183,7 @@ const findMatches = async (req, res) => {
 
       console.log("Checking time overlap:", {
         ride: { start: ride.timeRangeStart, end: ride.timeRangeEnd },
-        match: { start: match.timeRangeStart, end: match.timeRangeEnd }
+        match: { start: match.timeRangeStart, end: match.timeRangeEnd },
       });
 
       const overlap = getTimeOverlap(rideStart, rideEnd, matchStart, matchEnd);
@@ -206,23 +211,25 @@ const findMatches = async (req, res) => {
     bookerUid = useRidePickupAsStart ? ride.userId : finalMatch.match.userId;
 
     // Set the starting point (meetup location)
-    startingPoint = useRidePickupAsStart ? {
-      name: ride.pickup,
-      address: ride.pickupAddress,
-      placeID: ride.pickupPlaceID,
-      location: {
-        type: 'Point',
-        coordinates: ride.pickupLocation.coordinates
-      }
-    } : {
-      name: finalMatch.match.pickup,
-      address: finalMatch.match.pickupAddress,
-      placeID: finalMatch.match.pickupPlaceID,
-      location: {
-        type: 'Point',
-        coordinates: finalMatch.match.pickupLocation.coordinates
-      }
-    };
+    startingPoint = useRidePickupAsStart
+      ? {
+          name: ride.pickup,
+          address: ride.pickupAddress,
+          placeID: ride.pickupPlaceID,
+          location: {
+            type: "Point",
+            coordinates: ride.pickupLocation.coordinates,
+          },
+        }
+      : {
+          name: finalMatch.match.pickup,
+          address: finalMatch.match.pickupAddress,
+          placeID: finalMatch.match.pickupPlaceID,
+          location: {
+            type: "Point",
+            coordinates: finalMatch.match.pickupLocation.coordinates,
+          },
+        };
 
     // Calculate distances from starting point to both destinations
     const distanceToRideDestination = calculateDistance(
@@ -240,26 +247,29 @@ const findMatches = async (req, res) => {
     );
 
     // Choose the drop-off point that's closer to the starting point
-    const useRideDestinationAsEnd = distanceToRideDestination <= distanceToMatchDestination;
+    const useRideDestinationAsEnd =
+      distanceToRideDestination <= distanceToMatchDestination;
 
     // Set the ending point (drop-off location)
-    endingPoint = useRideDestinationAsEnd ? {
-      name: ride.destination,
-      address: ride.destinationAddress,
-      placeID: ride.destinationPlaceID,
-      location: {
-        type: 'Point',
-        coordinates: ride.destinationLocation.coordinates
-      }
-    } : {
-      name: finalMatch.match.destination,
-      address: finalMatch.match.destinationAddress,
-      placeID: finalMatch.match.destinationPlaceID,
-      location: {
-        type: 'Point',
-        coordinates: finalMatch.match.destinationLocation.coordinates
-      }
-    };
+    endingPoint = useRideDestinationAsEnd
+      ? {
+          name: ride.destination,
+          address: ride.destinationAddress,
+          placeID: ride.destinationPlaceID,
+          location: {
+            type: "Point",
+            coordinates: ride.destinationLocation.coordinates,
+          },
+        }
+      : {
+          name: finalMatch.match.destination,
+          address: finalMatch.match.destinationAddress,
+          placeID: finalMatch.match.destinationPlaceID,
+          location: {
+            type: "Point",
+            coordinates: finalMatch.match.destinationLocation.coordinates,
+          },
+        };
 
     // Update both rides atomically with the starting point, ending point and match info
     ride.isMatched = true;
@@ -288,7 +298,8 @@ const findMatches = async (req, res) => {
     finalMatch.match.endingPointLocation = endingPoint.location;
     finalMatch.match.bookerUid = bookerUid;
     finalMatch.match.matchedUserPhone = ride.userPhone;
-    finalMatch.match.totalPassengers = ride.passengers + finalMatch.match.passengers;
+    finalMatch.match.totalPassengers =
+      ride.passengers + finalMatch.match.passengers;
 
     await ride.save({ session });
     await finalMatch.match.save({ session });
@@ -332,15 +343,15 @@ const getUserRides = async (req, res) => {
 
 const getRide = async (req, res) => {
   try {
-    const { rideId } = req.params;  // Changed from id to rideId to match route parameter
-    
+    const { rideId } = req.params; // Changed from id to rideId to match route parameter
+
     // Validate if rideId is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(rideId)) {
       return res.status(400).json({ error: "Invalid ride ID format" });
     }
 
     const ride = await Ride.findById(rideId);
-    
+
     if (!ride) {
       return res.status(404).json({ error: "Ride not found" });
     }
@@ -354,7 +365,7 @@ const getRide = async (req, res) => {
 
 // Helper function to calculate distance between two points in miles
 function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 3963; // Earth's radius in miles
+  const R = 3963;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =

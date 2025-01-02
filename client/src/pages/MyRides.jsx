@@ -131,7 +131,10 @@ const MyRides = () => {
       console.log("Initial rides data:", data);
       setRides(data);
     } catch (error) {
-      console.error("Error fetching rides:", error);
+      console.error(
+        "Error fetching rides try signing out and signing in:",
+        error
+      );
       setError(error.message);
     } finally {
       setLoading(false);
@@ -231,7 +234,7 @@ const MyRides = () => {
                           {ride.isMatched
                             ? `${ride.totalPassengers} Total Passengers`
                             : `${ride.passengers} Passenger${
-                                ride.passengers > 1 ? 's' : ''
+                                ride.passengers > 1 ? "s" : ""
                               }`}
                         </span>
                       </div>
