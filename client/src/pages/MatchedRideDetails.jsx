@@ -122,13 +122,13 @@ const MapWithDirections = ({
   );
 
   const openInGoogleMaps = useCallback(
-    (origin, destination) => {
+    (origin, destination, mode = 'walking') => {
       if (!origin || !destination) return;
 
-      const url = `https://www.google.com/maps/dir/?api=1&origin=place_id:${origin}&destination=place_id:${destination}&travelmode=${mode.toLowerCase()}`;
+      const url = `https://www.google.com/maps/dir/?api=1&origin=place_id:${origin}&destination=place_id:${destination}&travelmode=${mode}`;
       window.open(url, "_blank");
     },
-    [mode]
+    []
   );
 
   // Get place details when map is loaded
@@ -360,6 +360,16 @@ const MatchedRideDetails = () => {
   const [error, setError] = useState(null);
 
   useMaps();
+
+  const openInGoogleMaps = useCallback((start, end, mode = 'walking') => {
+    // Convert addresses to URL-safe strings
+    const origin = encodeURIComponent(start);
+    const destination = encodeURIComponent(end);
+    
+    // Construct Google Maps URL
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=${mode}`;
+    window.open(url, '_blank');
+  }, []);
 
   useEffect(() => {
     const fetchRideDetails = async () => {
@@ -602,8 +612,9 @@ const MatchedRideDetails = () => {
                             <button
                               onClick={() =>
                                 openInGoogleMaps(
-                                  ride.pickupPlaceID,
-                                  ride.startingPointPlaceID
+                                  ride.pickupAddress,
+                                  ride.startingPointAddress,
+                                  'walking'
                                 )
                               }
                               className="flex items-center text-sm text-blue-600 hover:text-blue-700 transition-colors"
@@ -668,8 +679,9 @@ const MatchedRideDetails = () => {
                           <button
                             onClick={() =>
                               openInGoogleMaps(
-                                ride.startingPointPlaceID,
-                                ride.endingPointPlaceID
+                                ride.startingPointAddress,
+                                ride.endingPointAddress,
+                                'driving'
                               )
                             }
                             className="flex items-center text-sm text-blue-600 hover:text-blue-700 transition-colors"
@@ -746,8 +758,9 @@ const MatchedRideDetails = () => {
                               <button
                                 onClick={() =>
                                   openInGoogleMaps(
-                                    ride.endingPointPlaceID,
-                                    ride.destinationPlaceID
+                                    ride.endingPointAddress,
+                                    ride.destinationAddress,
+                                    'walking'
                                   )
                                 }
                                 className="flex items-center text-sm text-blue-600 hover:text-blue-700 transition-colors"
