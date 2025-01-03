@@ -1,5 +1,5 @@
 import { ChakraProvider, CSSReset } from "@chakra-ui/react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { MapsProvider } from "./contexts/MapsContext";
 import Login from "./pages/Login";
@@ -17,15 +17,21 @@ function App() {
         <MapsProvider>
           <Router>
             <Routes>
-              <Route path="/" element={<Login />} />
+              {/* Public Routes */}
               <Route path="/login" element={<Login />} />
+
+              {/* Protected Routes */}
               <Route
-                path="/home"
+                path="/"
                 element={
                   <PrivateRoute>
                     <HomePage />
                   </PrivateRoute>
                 }
+              />
+              <Route
+                path="/home"
+                element={<Navigate to="/" replace />}
               />
               <Route
                 path="/ride-request"
@@ -51,6 +57,9 @@ function App() {
                   </PrivateRoute>
                 }
               />
+
+              {/* Catch all route - redirect to home */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Router>
         </MapsProvider>
