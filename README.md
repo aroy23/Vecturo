@@ -15,15 +15,15 @@ Vecturo is a rideshare utility that matches two users travelling to similar dest
 - The details page will provide in depth travel directions, visuals, and instructions so you and your matched rideshare partner can efficiently book and travel to your destinations
 - Enjoy your savings
 ## Gallery
-
 | Person A Sees | Person B Sees |
 | --- | --- |
 | <video src="https://github.com/user-attachments/assets/4d99ed8d-f1a4-4adc-81f1-75623282dd6d" controls width="300"></video> | <video src="https://github.com/user-attachments/assets/e8120d75-9dcb-4139-99df-9b451779c89e" controls width="300"></video> |
 
-![](./media/ride-details.png)
-![](./media/matched.png)
-![](./media/finding-matches.png)
-![](./media/homepage.png)
+<img width="1499" alt="ride-details" src="https://github.com/user-attachments/assets/6a10dd0a-c750-45ed-a564-eac82f02c2df" />
+<img width="942" alt="matched" src="https://github.com/user-attachments/assets/3e83074e-98fc-448d-a89d-16734771194c" />
+<img width="858" alt="finding-matches" src="https://github.com/user-attachments/assets/2e9ed203-f50f-490b-84ec-be14e38e5d4c" />
+<img width="1794" alt="homepage" src="https://github.com/user-attachments/assets/61bb75e6-b665-41d1-8930-6a66e92bca0e" />
+
 ## Installation and Running
 First clone Vecturo's repository to your local machine and enter the directory
 ```shell
