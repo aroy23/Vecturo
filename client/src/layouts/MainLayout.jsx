@@ -157,7 +157,7 @@ const MainLayout = ({ children }) => {
         className="bg-gray-900 text-white py-8 min-w-[1024px]"
       >
         <div className="container-padding text-center">
-          <p>&copy; 2024 Vecturo. All rights reserved.</p>
+          <p>&copy; 2025 Vecturo. All rights reserved.</p>
         </div>
       </motion.footer>
     </div>
