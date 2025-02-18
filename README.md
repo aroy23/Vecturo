@@ -1,5 +1,5 @@
 # Vecturo
-Vecturo is a rideshare utility that matches two users travelling to similar destinations leading to drastic savings in ridesharing costs.
+Vecturo is a rideshare utility that matches two users travelling to similar destinations allowing drastic savings in ridesharing costs.
 ## Usage
 ### Signing In
 - You must log in with Google
