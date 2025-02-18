@@ -72,4 +72,4 @@ npm run install-all && npm start
 
 Navigate to the link shown in the terminal.
 ## Notes
-If you have any questions you can contact me at arnavroy[at]ucla[dot]edu
+If you have any questions or suggestions you can contact me at arnavroy[at]ucla[dot]edu
