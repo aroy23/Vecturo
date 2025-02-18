@@ -15,16 +15,10 @@ Vecturo is a rideshare utility that matches two users travelling to similar dest
 - The details page will provide in depth travel directions, visuals, and instructions so you and your matched rideshare partner can efficiently book and travel to your destinations
 - Enjoy your savings
 ## Gallery
-<div style="display: flex; gap: 10px; align-items: center;">
-  <div style="text-align: center;">
-    <div>Person A sees</div>
-    <video src="./media/persona.mp4" style="max-width: 100%; height: auto;">
-  </div>
-  <div style="text-align: center;">
-    <div>Person B sees</div>
-    <video src="./media/personb.mp4" style="max-width: 100%; height: auto;">
-  </div>
-</div>
+
+| Person A Sees | Person B Sees |
+| --- | --- |
+| <video src="https://github.com/user-attachments/assets/4d99ed8d-f1a4-4adc-81f1-75623282dd6d" controls width="300"></video> | <video src="https://github.com/user-attachments/assets/e8120d75-9dcb-4139-99df-9b451779c89e" controls width="300"></video> |
 
 ![](./media/ride-details.png)
 ![](./media/matched.png)
