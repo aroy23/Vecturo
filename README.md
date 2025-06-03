@@ -66,7 +66,7 @@ MONGODB_URI=...
 PORT=...
 ```
 
-Now you are ready to start the application
+Once environment variables are set, you are ready to start the application
 
 ```shell
 npm run install-all && npm start
@@ -74,4 +74,4 @@ npm run install-all && npm start
 
 Navigate to the link shown in the terminal.
 ## Notes
-If you have any questions or suggestions you can contact me at arnavroy[at]ucla[dot]edu
+If you have any questions or suggestions, you can contact me at arnavroy[at]ucla[dot]edu
